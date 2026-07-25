@@ -83,6 +83,24 @@ const server = http.createServer(function(req, res){
         res.end();
         // notice I have used backticks(``) instead of double quotes.Although using double quotes is also valid but Read about backticks benefits.
     }
+    // Task: to display general details of request send by client to the client in json format also called Request Inspector, creating another endpoint
+    else if(req.method === "GET" && req.url === "/debug/request"){
+        // creating js object
+        const requestDetails = {
+            method: req.method,
+            url: req.url,
+            httpVersion: req.httpVersion,
+            headers: req.headers,
+            rawHeaders: req.rawHeaders,
+            IPOfClient: req.socket.remoteAddress,
+            IPOfServer: req.socket.localAddress
+        }
+
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/json");
+        res.write(JSON.stringify(requestDetails));
+        res.end();
+    }
     else{
         res.statusCode = 404;
         res.setHeader("Content-Type", "text/html");
