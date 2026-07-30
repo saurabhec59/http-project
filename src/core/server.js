@@ -10,6 +10,18 @@
     the callback function of createServer() is executed by server instance only when a request is received.
 */
 import http from 'http';
+import responseBuilder from './response-builder.js';
+import { addRoute, matchRoute} from './router.js';
+import {homeHandler, htmlHandler, jsonHandler, xmlHandler, debugRequestHandler, emptyResponseHandler, redirectToHomePageHandler, downloadTextFileHandler} from './routes/general.js';
+
+addRoute("GET", "/", homeHandler);
+addRoute("GET", "/html", htmlHandler);
+addRoute("GET", "/json", jsonHandler);
+addRoute("GET", "/xml", xmlHandler);
+addRoute("GET", "/debug/request", debugRequestHandler);
+addRoute("GET", "/empty", emptyResponseHandler);
+addRoute("GET", "/redirect", redirectToHomePageHandler);
+addRoute("GET", "/download", downloadTextFileHandler);
 
 const server = http.createServer(function(req, res){
     console.log("Request received");
@@ -50,56 +62,9 @@ const server = http.createServer(function(req, res){
 
     // there are others events as well like "close" ==> which is used when connection is closed, browser closed suddenly, TCP connection terminated. Few more events are "error", "destroy"....
 
-    if(req.url === "/"){
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "text/plain");
-        res.write("Home page with plain text");
-        res.end(); // means now response building is done and node will send response to client, but without this node will never get to know response building is done or not and request will never be sent to client.
-    }
-    else if(req.url === "/html"){
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "text/html");
-        res.write("<h1>Hello html page</h1>"); // whatever you are putting in rew.write() it should be withing double quotes,  JSON.stringify() also returns string so there no need of double quotes.
-        res.end();
-    }
-    else if(req.url === "/json"){
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json");
-        res.write(JSON.stringify({
-            name: "Rahul",
-            age: 30
-        }))
-        res.end();
-    }
-    else if(req.url === "/xml"){
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/xml");
-        res.write(`
-            <user>
-                <name>Rahul</name>
-                <age>30</age>
-            </user>
-        `)
-        res.end();
-        // notice I have used backticks(``) instead of double quotes.Although using double quotes is also valid but Read about backticks benefits.
-    }
-    // Task: to display general details of request send by client to the client in json format also called Request Inspector, creating another endpoint
-    else if(req.method === "GET" && req.url === "/debug/request"){
-        // creating js object
-        const requestDetails = {
-            method: req.method,
-            url: req.url,
-            httpVersion: req.httpVersion,
-            headers: req.headers,
-            rawHeaders: req.rawHeaders,
-            IPOfClient: req.socket.remoteAddress,
-            IPOfServer: req.socket.localAddress
-        }
-
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json");
-        res.write(JSON.stringify(requestDetails));
-        res.end();
+    var handler = matchRoute(req.method, req.url);
+    if(handler){
+        handler(req, res);
     }
     else{
         res.statusCode = 404;
