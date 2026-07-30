@@ -11,6 +11,17 @@
 */
 import http from 'http';
 import responseBuilder from './response-builder.js';
+import { addRoute, matchRoute} from './router.js';
+import {homeHandler, htmlHandler, jsonHandler, xmlHandler, debugRequestHandler, emptyResponseHandler, redirectToHomePageHandler, downloadTextFileHandler} from './routes/general.js';
+
+addRoute("GET", "/", homeHandler);
+addRoute("GET", "/html", htmlHandler);
+addRoute("GET", "/json", jsonHandler);
+addRoute("GET", "/xml", xmlHandler);
+addRoute("GET", "/debug/request", debugRequestHandler);
+addRoute("GET", "/empty", emptyResponseHandler);
+addRoute("GET", "/redirect", redirectToHomePageHandler);
+addRoute("GET", "/download", downloadTextFileHandler);
 
 const server = http.createServer(function(req, res){
     console.log("Request received");
@@ -51,56 +62,9 @@ const server = http.createServer(function(req, res){
 
     // there are others events as well like "close" ==> which is used when connection is closed, browser closed suddenly, TCP connection terminated. Few more events are "error", "destroy"....
 
-    if(req.url === "/"){
-        var html = "<h2>Home page with html content</h2>";
-        responseBuilder.sendHtmlResponse(res, html);
-    }
-    else if(req.url === "/html"){
-        var html = "<h1>Hello html page</h1>";
-        responseBuilder.sendHtmlResponse(res, html);
-    }
-    else if(req.url === "/json"){
-        var json = {
-            name: "Rahul",
-            age: 30
-        }
-        responseBuilder.sendJsonResponse(res, json);
-    }
-    else if(req.url === "/xml"){
-        var xml = `
-            <user>
-                <name>Rahul</name>
-                <age>30</age>
-            </user>
-        `;
-        responseBuilder.sendXmlResponse(res, xml);
-        // notice I have used backticks(``) instead of double quotes.Although using double quotes is also valid but Read about backticks benefits.
-    }
-    // Task: to display general details of request send by client to the client in json format also called Request Inspector, creating another endpoint
-    else if(req.method === "GET" && req.url === "/debug/request"){
-        // creating js object
-        const requestDetails = {
-            method: req.method,
-            url: req.url,
-            httpVersion: req.httpVersion,
-            headers: req.headers,
-            rawHeaders: req.rawHeaders,
-            IPOfClient: req.socket.remoteAddress,
-            IPOfServer: req.socket.localAddress
-        }
-
-        responseBuilder.sendJsonResponse(res, requestDetails);
-    }
-    else if(req.method === "GET" && req.url === "/empty"){
-        responseBuilder.sendEmptyResponse(res);
-    }
-    else if(req.method === "GET" && req.url === "/redirect"){ // task was to redirect the client to home page if request url is "/redirect"
-        var urlToRedirect = "/";
-        responseBuilder.sendRedirectResponse(res, urlToRedirect);
-    }
-    else if(req.method === "GET" && req.url === "/download"){
-        var text = "this is a fake text file";
-        responseBuilder.sendTextFileDownloadResponse(res, text);
+    var handler = matchRoute(req.method, req.url);
+    if(handler){
+        handler(req, res);
     }
     else{
         res.statusCode = 404;
