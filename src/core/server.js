@@ -12,7 +12,7 @@
 import http from 'http';
 import responseBuilder from './response-builder.js';
 import { addRoute, matchRoute} from './router.js';
-import {homeHandler, htmlHandler, jsonHandler, xmlHandler, debugRequestHandler, emptyResponseHandler, redirectToHomePageHandler, downloadTextFileHandler} from './routes/general.js';
+import {homeHandler, htmlHandler, jsonHandler, xmlHandler, debugRequestHandler, emptyResponseHandler, redirectToHomePageHandler, downloadTextFileHandler, urlNotFoundHandler, methodNotAllowedHandler} from './routes/general.js';
 
 addRoute("GET", "/", homeHandler);
 addRoute("GET", "/html", htmlHandler);
@@ -63,15 +63,7 @@ const server = http.createServer(function(req, res){
     // there are others events as well like "close" ==> which is used when connection is closed, browser closed suddenly, TCP connection terminated. Few more events are "error", "destroy"....
 
     var handler = matchRoute(req.method, req.url);
-    if(handler){
-        handler(req, res);
-    }
-    else{
-        res.statusCode = 404;
-        res.setHeader("Content-Type", "text/html");
-        res.write("<h2>Mind your url</h2>");
-        res.end();
-    }
+    handler(req, res);
 
 })
 

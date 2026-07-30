@@ -1,3 +1,5 @@
+import {urlNotFoundHandler, methodNotAllowedHandler} from "./routes/general.js";
+
 var routes = {};
 routes.GET = {};
 routes.POST = {};
@@ -8,14 +10,20 @@ function addRoute(method, path, handler) {
     routes[method][path] = handler;
 }
 
+// #1........
 function matchRoute(method, url){
-    var handler = routes[method][url];
-    if(handler){
-        return handler;
+    if(!routes[method]){
+        return methodNotAllowedHandler;
     }
-    else{
-        return undefined;
+    if(routes[method][url]){
+        return routes[method][url];
     }
+    for(var currentMethod in routes){
+        if(routes[currentMethod][url]){
+            return methodNotAllowedHandler;
+        }
+    }
+    return urlNotFoundHandler;
 }
 
 export {addRoute, matchRoute};
@@ -111,4 +119,21 @@ register it using addRoute() in server.js
 define its handler in general.js
 if additional utility required then create in response-builder.
 
+#1........
+till now if there is no handler for requested url then we were sending 404 response directly from server.js like this:
+var handler = matchRoute(req.method, req.url);
+    if(handler){
+        handler(req, res);
+    }
+    else{
+        res.statusCode = 404;
+        res.setHeader("Content-Type", "text/html");
+        res.write("<h2>Mind your url</h2>");
+        res.end();
+    }
+but there was few problems with that approach like server.js is creating response directly, second is if requested url exist but not under requested method then correct response is 405.
+valid approach should be:
+-> if requested method & url is found then return it's handler
+-> if requested url exist but not under requested method then return 405 ( method not allowed )
+-> if requested url itself does not exist then return 404
 */

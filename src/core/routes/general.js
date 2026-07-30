@@ -59,4 +59,14 @@ function downloadTextFileHandler(req, res){
     responseBuilder.sendTextFileDownloadResponse(res, text);
 }
 
-export {homeHandler, htmlHandler, jsonHandler, xmlHandler, debugRequestHandler, emptyResponseHandler, redirectToHomePageHandler, downloadTextFileHandler};
+function urlNotFoundHandler(req, res){
+    var html = "<h2>Mind your url</h2>";
+    responseBuilder.send404Response(res, html);
+}
+
+function methodNotAllowedHandler(req, res){
+    var html = "<h2>Mind your method</h2>";
+    responseBuilder.send405Response(res, html);
+}
+
+export {homeHandler, htmlHandler, jsonHandler, xmlHandler, debugRequestHandler, emptyResponseHandler, redirectToHomePageHandler, downloadTextFileHandler, urlNotFoundHandler, methodNotAllowedHandler};
