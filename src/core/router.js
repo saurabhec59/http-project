@@ -13,7 +13,7 @@ function addRoute(method, path, handler) {
 // #2........
 function matchRoute(method, url){
     if(!routes[method]){
-        return methodNotAllowedHandler;
+        return { handler: methodNotAllowedHandler, params: {}};
     }
 
     var requestUrlSplit = url.split("/");
@@ -22,6 +22,7 @@ function matchRoute(method, url){
     for(var i in routes[method]){
         // var i in users[method] => will iterate over all the registered urls in users[method] like if 'method' is 'GET' then this outer loop will be iterating over all urls listed in users.GET
 
+        var params = {}; // #3.....
         var check = true; // setting it to true otherwise if 1st registered url for that method is not matched then it will set to false and even if next url is matched then also check will be false and above if() will never be true;
         var registeredUrlSplit = i.split("/");
         if(requestUrlSplit.length != registeredUrlSplit.length){
@@ -29,6 +30,9 @@ function matchRoute(method, url){
         }
         for(var j=0; j<registeredUrlSplit.length; j++){
             if(registeredUrlSplit[j].startsWith(":") || registeredUrlSplit[j] === requestUrlSplit[j]){
+                if(registeredUrlSplit[j].startsWith(":")){
+                    params[registeredUrlSplit[j].substring(1)] = requestUrlSplit[j];
+                }
                 continue; // no need to compare
             }
             else{
@@ -38,7 +42,7 @@ function matchRoute(method, url){
         }
         // if above loop is finished and check is still true means no of parts and indivisual parts matched. Means we find the correct registered route and will return it's handler
         if(check){
-            return routes[method][i];
+            return { handler: routes[method][i], params: params }
         }
 
     }
@@ -46,10 +50,10 @@ function matchRoute(method, url){
 
     for(var currentMethod in routes){
         if(routes[currentMethod][url]){
-            return methodNotAllowedHandler;
+            return { handler: methodNotAllowedHandler, params: {}};
         }
     }
-    return urlNotFoundHandler;
+    return { handler: urlNotFoundHandler, params: {}};
 }
 
 export {addRoute, matchRoute};
@@ -174,5 +178,9 @@ Here ":id" acts as a route parameter and can match any value at that position.
 
 The function compares URL segments one by one and returns the corresponding handler
 when a matching route pattern is found.
-*/
+
+#3......
+now the problem was our matchRoute() is able to find the correct handler for parameterized route but it was not able to return the value of that parameter.
+Either let handler extract the value of parameter from req.url or let matchRoute() return the value of parameter along with handler. I choose 2nd approach because it will keep the handler simple and clean.
+Also now our matchRoute() is extracting params and returning an object containing handler and params when params are present so that server.js can pass those params to handlers as well.
 */

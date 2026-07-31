@@ -69,8 +69,9 @@ const server = http.createServer(function(req, res){
 
     // there are others events as well like "close" ==> which is used when connection is closed, browser closed suddenly, TCP connection terminated. Few more events are "error", "destroy"....
 
-    var handler = matchRoute(req.method, req.url);
-    handler(req, res);
+    var routeResult = matchRoute(req.method, req.url); // #5.....
+    req.params = routeResult.params;
+    routeResult.handler(req, res);
 
 })
 
@@ -134,4 +135,8 @@ but we can't just register those 50 exact urls. So what we can do is we can regi
 a variable name and it could be anything else as well. See the update routeMatch() function to understand how we are using this.
 Remember: =>>> still client will send "users/1", "users/2".... It's us on only server side registering it using ":"
 NEXT I will be implementing extraction of parameters and then implementing these handlers.
+
+#5....
+see the matchRoute() and you will see that now it returns an object containing handler method reference and params object (empty params obj when no parameters present)
+so here we are now attaching params to 'req' object and passing that updated 'ref' so that handler can use that.
 */
