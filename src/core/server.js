@@ -13,6 +13,7 @@ import http from 'http';
 import responseBuilder from './response-builder.js';
 import { addRoute, matchRoute} from './router.js';
 import {homeHandler, htmlHandler, jsonHandler, xmlHandler, debugRequestHandler, emptyResponseHandler, redirectToHomePageHandler, downloadTextFileHandler, urlNotFoundHandler, methodNotAllowedHandler} from './routes/general.js';
+import {getAllUsersHandler, createUserHandler} from './routes/users.js';
 
 addRoute("GET", "/", homeHandler);
 addRoute("GET", "/html", htmlHandler);
@@ -22,6 +23,12 @@ addRoute("GET", "/debug/request", debugRequestHandler);
 addRoute("GET", "/empty", emptyResponseHandler);
 addRoute("GET", "/redirect", redirectToHomePageHandler);
 addRoute("GET", "/download", downloadTextFileHandler);
+addRoute("GET", "/users", getAllUsersHandler);
+addRoute("POST", "/users", createUserHandler);
+addRoute("GET", "/users/:id", getUserByIdHandler); // #4......
+addRoute("PATCH", "/users/:id", partialUpdateByIdHandler);
+addRoute("PUT", "/users/:id", fullUpdateByIdHandler);
+addRoute("DELETE", "/users/:id", deleteUserHandler);
 
 const server = http.createServer(function(req, res){
     console.log("Request received");
@@ -117,4 +124,14 @@ if we are using res.setHeader() and we have to set multiple headers then we can 
 
     when headers are send? during the execution of res.write() or res.writeHead() or res.end(), not after them.
 
+#4.......
+Here we are only registering the routes, next we will implement actual handlers.
+lets understand "/users/:id"   ==> this is parameterized/dynamic routing. NOTE: clients do not send routes/urls like this. Then why we are registering url like this?
+previously we are registering exact url which client sends like "/users" , "/users/xml"...
+but suppose there is a list of 50 users and when the client will ask for details of any particular user then url may look like "/users/1", "/users/2"..."/users/50"
+but we can't just register those 50 exact urls. So what we can do is we can register a url like:
+"/users/:id"   => here ":id" is nothing special syntax, it's just part of the string but by convention where we need to specify parameters we does ":" and 'id' is just
+a variable name and it could be anything else as well. See the update routeMatch() function to understand how we are using this.
+Remember: =>>> still client will send "users/1", "users/2".... It's us on only server side registering it using ":"
+NEXT I will be implementing extraction of parameters and then implementing these handlers.
 */
