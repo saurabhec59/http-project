@@ -1,21 +1,60 @@
+import {urlNotFoundHandler, methodNotAllowedHandler} from "./routes/general.js";
+
 var routes = {};
 routes.GET = {};
 routes.POST = {};
 routes.PUT = {};
+routes.PATCH = {};
 routes.DELETE = {};
 
 function addRoute(method, path, handler) {
     routes[method][path] = handler;
 }
 
+// #2........
 function matchRoute(method, url){
-    var handler = routes[method][url];
-    if(handler){
-        return handler;
+    if(!routes[method]){
+        return { handler: methodNotAllowedHandler, params: {}};
     }
-    else{
-        return undefined;
+
+    var requestUrlSplit = url.split("/");
+    // split("/"); => divides string by "/" and creates an array. for ex: if url is "/users/item/5"  then after split it will be converted into an array => [ "", "users", "item", "5"]
+    // visiting each registered url for particular 'method'
+    for(var i in routes[method]){
+        // var i in users[method] => will iterate over all the registered urls in users[method] like if 'method' is 'GET' then this outer loop will be iterating over all urls listed in users.GET
+
+        var params = {}; // #3.....
+        var check = true; // setting it to true otherwise if 1st registered url for that method is not matched then it will set to false and even if next url is matched then also check will be false and above if() will never be true;
+        var registeredUrlSplit = i.split("/");
+        if(requestUrlSplit.length != registeredUrlSplit.length){
+            continue; // if no of parts are not equals then no need to compare individual parts.
+        }
+        for(var j=0; j<registeredUrlSplit.length; j++){
+            if(registeredUrlSplit[j].startsWith(":") || registeredUrlSplit[j] === requestUrlSplit[j]){
+                if(registeredUrlSplit[j].startsWith(":")){
+                    params[registeredUrlSplit[j].substring(1)] = requestUrlSplit[j];
+                }
+                continue; // no need to compare
+            }
+            else{
+                check = false;
+                break;
+            }
+        }
+        // if above loop is finished and check is still true means no of parts and indivisual parts matched. Means we find the correct registered route and will return it's handler
+        if(check){
+            return { handler: routes[method][i], params: params }
+        }
+
     }
+
+
+    for(var currentMethod in routes){
+        if(routes[currentMethod][url]){
+            return { handler: methodNotAllowedHandler, params: {}};
+        }
+    }
+    return { handler: urlNotFoundHandler, params: {}};
 }
 
 export {addRoute, matchRoute};
@@ -111,4 +150,38 @@ register it using addRoute() in server.js
 define its handler in general.js
 if additional utility required then create in response-builder.
 
+#1........
+till now if there is no handler for requested url then we were sending 404 response directly from server.js like this:
+var handler = matchRoute(req.method, req.url);
+    if(handler){
+        handler(req, res);
+    }
+    else{
+        res.statusCode = 404;
+        res.setHeader("Content-Type", "text/html");
+        res.write("<h2>Mind your url</h2>");
+        res.end();
+    }
+but there was few problems with that approach like server.js is creating response directly, second is if requested url exist but not under requested method then correct response is 405.
+valid approach should be:
+-> if requested method & url is found then return it's handler
+-> if requested url exist but not under requested method then return 405 ( method not allowed )
+-> if requested url itself does not exist then return 404
+
+#2......
+Initially routes were matched using exact string comparison only: /users/1 === /users/1
+
+Now it also supports parameterized routes/ dynamic routes:
+    registered route: /users/:id
+    requested URL:    /users/25
+
+Here ":id" acts as a route parameter and can match any value at that position.
+
+The function compares URL segments one by one and returns the corresponding handler
+when a matching route pattern is found.
+
+#3......
+now the problem was our matchRoute() is able to find the correct handler for parameterized route but it was not able to return the value of that parameter.
+Either let handler extract the value of parameter from req.url or let matchRoute() return the value of parameter along with handler. I choose 2nd approach because it will keep the handler simple and clean.
+Also now our matchRoute() is extracting params and returning an object containing handler and params when params are present so that server.js can pass those params to handlers as well.
 */

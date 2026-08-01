@@ -46,6 +46,20 @@ const responseBuilder = {
         res.setHeader("Content-Disposition", "attachment; filename=\"myfile.txt\""); // filename attribute tells client that while saving use this name for the file. The weired syntax is js escaping.
         res.write(text);
         res.end();
+    },
+
+    send404Response: function(res, html){
+        res.statusCode = 404;
+        res.setHeader("Content-Type", "text/html");
+        res.write(html);
+        res.end();
+    },
+
+    send405Response: function(res, html){
+        res.statusCode = 405;
+        res.setHeader("Content-Type", "text/html");
+        res.write(html);
+        res.end();
     }
 }
 
