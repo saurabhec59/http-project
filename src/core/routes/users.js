@@ -26,6 +26,11 @@ function createUserHandler(req, res){
 
 function getUserByIdHandler(req, res){
     var user = getById(parseInt(req.params.id));
+    if(!user){ // because getBYId() only loops through the array and if it does not find any user then it will not return anything and this variable 'user' will be undefined.
+        var html = "<h2>User not found</h2>";
+        responseBuilder.send404Response(res, html);
+        return;
+    }
     res.statusCode = 200;
     res.setHeader("Content-Type", "application/json");
     res.write(JSON.stringify(user));
@@ -45,6 +50,13 @@ function partialUpdateByIdHandler(req, res){
         userAge = JSON.parse(userAge);
         // 1st get the all data of user with that id
         var user = getById(parseInt(req.params.id));
+
+        if(!user){
+            var html = "<h2>User not found</h2>";
+            responseBuilder.send404Response(res, html);
+            return;
+        }
+
         // now update only age
         user.age = userAge.age;
         // now call 'update' crud method of store.js with 'id' & updated user data
@@ -71,6 +83,13 @@ function fullUpdateByIdHandler(req, res){
         userData = JSON.parse(userData);
         // 1st get the all data of user with that id
         var user = getById(parseInt(req.params.id));
+
+        if(!user){
+            var html = "<h2>User not found</h2>";
+            responseBuilder.send404Response(res, html);
+            return;
+        }
+
         // now update name & age
         user.name = userData.name;
         user.age = userData.age;
@@ -86,6 +105,13 @@ function fullUpdateByIdHandler(req, res){
 }
 
 function deleteUserHandler(req, res){
+    var user = getById(parseInt(req.params.id));
+    if(!user){
+        var html = "<h2>User not found</h2>";
+        responseBuilder.send404Response(res, html);
+        return;
+    }
+
     // calling deleteById() method of store.js to delete user with that id
     deleteById(parseInt(req.params.id));
 
