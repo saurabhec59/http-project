@@ -4,6 +4,7 @@ var routes = {};
 routes.GET = {};
 routes.POST = {};
 routes.PUT = {};
+routes.PATCH = {};
 routes.DELETE = {};
 
 function addRoute(method, path, handler) {

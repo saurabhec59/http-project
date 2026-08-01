@@ -13,7 +13,7 @@ import http from 'http';
 import responseBuilder from './response-builder.js';
 import { addRoute, matchRoute} from './router.js';
 import {homeHandler, htmlHandler, jsonHandler, xmlHandler, debugRequestHandler, emptyResponseHandler, redirectToHomePageHandler, downloadTextFileHandler, urlNotFoundHandler, methodNotAllowedHandler} from './routes/general.js';
-import {getAllUsersHandler, createUserHandler} from './routes/users.js';
+import {getAllUsersHandler, createUserHandler, getUserByIdHandler, partialUpdateByIdHandler, fullUpdateByIdHandler, deleteUserHandler} from './routes/users.js';
 
 addRoute("GET", "/", homeHandler);
 addRoute("GET", "/html", htmlHandler);

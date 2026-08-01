@@ -7,13 +7,13 @@ var users = [
 
 // now implementing CRUD operations for users. Each function will perform a specific operation on the users array.
 function getAll(){
-    return users;
+    return structuredClone(users); // returning a deep copy of the users array to prevent external modifications to the original data.
 }
 
 function getById(id){
     for(var i in users){
         if(users[i].id === id){
-        return users[i];
+        return structuredClone(users[i]); // returning a deep copy of the user object to prevent external modifications to the original data.
         }
     }
 }
