@@ -7,20 +7,14 @@ function getAllUsersHandler(req, res){
 }
 
 function createUserHandler(req, res){
-    var data = "";
-    req.on("data", function(chunk){
-        data += chunk.toString();
-    })
 
-    req.on("end", function(){
-        var user = JSON.parse(data);  // converts string into json object but the string should be in valid json format otherwise it will throw error. So here we are just assuming that client is sending valid json only.
-        create(user);
-        // to varify data was saved
-        res.statusCode = 201; // 201 means resource is created successfully
-        res.setHeader("Content-Type", "application/json"); // #1....
-        res.write(JSON.stringify(getAll()));
-        res.end();
-    })
+    var user = req.body;
+    create(user);
+    // to varify data was saved
+    res.statusCode = 201; // 201 means resource is created successfully
+    res.setHeader("Content-Type", "application/json"); // #1....
+    res.write(JSON.stringify(getAll()));
+    res.end();
 
 }
 
@@ -40,68 +34,55 @@ function getUserByIdHandler(req, res){
 function partialUpdateByIdHandler(req, res){
     // lets say ONLY age we wants to change:
 
-    // get the age no send in request body as json
-    var userAge = "";
-    req.on("data", function(chunk){
-        userAge += chunk;
-    })
+    var userAge = req.body;
+    // 1st get the all data of user with that id
+    var user = getById(parseInt(req.params.id));
 
-    req.on("end", function(){
-        userAge = JSON.parse(userAge);
-        // 1st get the all data of user with that id
-        var user = getById(parseInt(req.params.id));
+    if(!user){
+        var html = "<h2>User not found</h2>";
+        responseBuilder.send404Response(res, html);
+        return;
+    }
 
-        if(!user){
-            var html = "<h2>User not found</h2>";
-            responseBuilder.send404Response(res, html);
-            return;
-        }
-
-        // now update only age
-        user.age = userAge.age;
-        // now call 'update' crud method of store.js with 'id' & updated user data
-        update(parseInt(req.params.id), user);
-        // OPTIONAL sending all user data after update
-        var allUser = getAll();
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json");
-        res.write(JSON.stringify(allUser));
-        res.end();
-    })
+    // now update only age
+    user.age = userAge.age;
+    // now call 'update' crud method of store.js with 'id' & updated user data
+    update(parseInt(req.params.id), user);
+    // OPTIONAL sending all user data after update
+    var allUser = getAll();
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.write(JSON.stringify(allUser));
+    res.end();
 }
 
 function fullUpdateByIdHandler(req, res){
     // This time we update name and age both:
 
     // get the name & age send in request body as json
-    var userData = "";
-    req.on("data", function(chunk){
-        userData += chunk;
-    })
 
-    req.on("end", function(){
-        userData = JSON.parse(userData);
-        // 1st get the all data of user with that id
-        var user = getById(parseInt(req.params.id));
+    var userData = req.body;
+    // 1st get the all data of user with that id
+    var user = getById(parseInt(req.params.id));
 
-        if(!user){
-            var html = "<h2>User not found</h2>";
-            responseBuilder.send404Response(res, html);
-            return;
-        }
+    if(!user){
+        var html = "<h2>User not found</h2>";
+        responseBuilder.send404Response(res, html);
+        return;
+    }
 
-        // now update name & age
-        user.name = userData.name;
-        user.age = userData.age;
-        // now call 'update' crud method of store.js with 'id' & updated user data
-        update(parseInt(req.params.id), user);
-        // OPTIONAL sending all user data after update
-        var allUser = getAll();
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json");
-        res.write(JSON.stringify(allUser));
-        res.end();
-    })
+    // now update name & age
+    user.name = userData.name;
+    user.age = userData.age;
+    // now call 'update' crud method of store.js with 'id' & updated user data
+    update(parseInt(req.params.id), user);
+    // OPTIONAL sending all user data after update
+    var allUser = getAll();
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.write(JSON.stringify(allUser));
+    res.end();
+
 }
 
 function deleteUserHandler(req, res){

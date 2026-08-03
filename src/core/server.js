@@ -14,6 +14,7 @@ import responseBuilder from './response-builder.js';
 import { addRoute, matchRoute} from './router.js';
 import {homeHandler, htmlHandler, jsonHandler, xmlHandler, debugRequestHandler, emptyResponseHandler, redirectToHomePageHandler, downloadTextFileHandler, urlNotFoundHandler, methodNotAllowedHandler} from './routes/general.js';
 import {getAllUsersHandler, createUserHandler, getUserByIdHandler, partialUpdateByIdHandler, fullUpdateByIdHandler, deleteUserHandler} from './routes/users.js';
+import {parseBody} from '../middleware/body-parser.js';
 
 addRoute("GET", "/", homeHandler);
 addRoute("GET", "/html", htmlHandler);
@@ -30,7 +31,7 @@ addRoute("PATCH", "/users/:id", partialUpdateByIdHandler);
 addRoute("PUT", "/users/:id", fullUpdateByIdHandler);
 addRoute("DELETE", "/users/:id", deleteUserHandler);
 
-const server = http.createServer(function(req, res){
+const server = http.createServer(async function(req, res){
     console.log("Request received");
     console.log("url: " + req.url + " method: " + req.method);
     // logging 'req' object #1
@@ -56,18 +57,21 @@ const server = http.createServer(function(req, res){
     // { "nam     ==> only this much data will be passed to callback argument(chunk) and method will be called. Then again
     // e": "Rahul",  ===> only this much data will be passed to callback.....and method will be called....
     // so for a single request containing body, this callback can be called multiple times. NOTE: here 'chunk' is not of type String, it's Buffer (we will see later)
-    req.on("data", function(chunk){
-        // processing of chunks
-        console.log(chunk);
-    });
 
-    // "end" event: when there is no more body/payload data left to send then 'req' object emits this event.
-    // usually used for post processing of entire received payload.
-    req.on("end", function(){     // notice no arg is passed
-        console.log("no more payload");
-    });
 
     // there are others events as well like "close" ==> which is used when connection is closed, browser closed suddenly, TCP connection terminated. Few more events are "error", "destroy"....
+
+    // #6......Using body-parser middleware
+    var method = req.method;
+    if(method === "POST" || method === "PUT" || method === "PATCH"){
+        try{
+            req.body = await parseBody(req);
+        }catch(e){
+            var html = "<h2>" + e.message + "</h2>";
+            responseBuilder.send400Response(res, html);
+            return;
+        }
+    }
 
     var routeResult = matchRoute(req.method, req.url); // #5.....
     req.params = routeResult.params;
@@ -139,4 +143,19 @@ NEXT I will be implementing extraction of parameters and then implementing these
 #5....
 see the matchRoute() and you will see that now it returns an object containing handler method reference and params object (empty params obj when no parameters present)
 so here we are now attaching params to 'req' object and passing that updated 'ref' so that handler can use that.
+
+#6.......
+since we have created a body parser function in body-parser.js which is doing:
+collecting the input stream => req.on("data").  ====> which was initially done by each handler
+validating content-length and size of actual payload.
+parsing the content:
+    if client sent json => inside req.on("data") we read it as buffer => convert it into json inside req.on("end")   =====> which was initially done by our each handler
+    if client sent url encoded => "..........." => convert it into normal js object  ====> which was initially done by our each handler
+
+So now we can replace that entire processing of payload/body done by req.on("data") & req.on("end") from each handler method.
+For that we have 2 options:
+1-> replace that processing code from each handler with something like:  var data = await bodyParser(req);
+2-> inside the server.js -> inside the createServer() method -> before doing any operation with 'req' or 'res' , call our body parser if methods are PUT, POST and PATCH
+and create a property as "req.body" which will contain the parsed payload result. Now each handler receiving this request object have property "req.body" which they can directly use.
+And this approach servers the purpose of 'middleware' more meaningfully.
 */

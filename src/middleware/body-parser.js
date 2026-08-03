@@ -77,6 +77,7 @@ function parseBody(req){
     })
 }
 
+export { parseBody };
 
 
 /*
