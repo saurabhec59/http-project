@@ -69,4 +69,26 @@ function methodNotAllowedHandler(req, res){
     responseBuilder.send405Response(res, html);
 }
 
-export {homeHandler, htmlHandler, jsonHandler, xmlHandler, debugRequestHandler, emptyResponseHandler, redirectToHomePageHandler, downloadTextFileHandler, urlNotFoundHandler, methodNotAllowedHandler};
+function echoParsedBodyHandler(req, res){ // #1....
+    var requestType = req.headers["content-type"];
+    res.statusCode = 200;
+    if(requestType.startsWith("application/json") || requestType.startsWith("application/x-www-form-urlencoded")){
+        res.setHeader("Content-Type", requestType);
+        res.write(JSON.stringify(req.body));
+        res.end();
+    }
+    else{
+        res.setHeader("Content-Type", requestType);
+        res.write(req.body);
+        res.end();
+    }
+}
+
+export {homeHandler, htmlHandler, jsonHandler, xmlHandler, debugRequestHandler, emptyResponseHandler, redirectToHomePageHandler, downloadTextFileHandler, urlNotFoundHandler, methodNotAllowedHandler, echoParsedBodyHandler};
+
+/*
+#1...
+this task was to return the PROCESSED body content back to client. Since we were parsing only json and url encoded payloads and the parsed results were of object type so
+simply returning that object back to client as json is enough. And for other type of incoming payloads we are simply storing them as string as you can see in body-parser.js
+so in else condition we simply returned that string back because res.write() accepts string as well.
+*/
