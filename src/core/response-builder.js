@@ -48,6 +48,13 @@ const responseBuilder = {
         res.end();
     },
 
+    send400Response: function(res, html){
+        res.statusCode = 400;
+        res.setHeader("Content-Type", "text/html");
+        res.write(html);
+        res.end();
+    },
+
     send404Response: function(res, html){
         res.statusCode = 404;
         res.setHeader("Content-Type", "text/html");
