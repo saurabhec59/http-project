@@ -28,6 +28,12 @@ function parseBody(req){
     const MAX_BODY_SIZE = 1024 * 1024; // 1 MB
     return new Promise(function(onSuccess, onFailure){ // usually devs use 'resolve' and 'reject' instead of onSuccess and onFailure
 
+        // #9....  Setting time out if client did not sent bytes/payload after connection
+        var timeout = setTimeout(function(){
+            onFailure(new Error ("Timeout"));
+            req.destroy();
+
+        }, 30000);
         // preventing server from processing large malicious or fake requests ===>  #5......
         if(req.headers["content-length"] && parseInt(req.headers["content-length"]) > MAX_BODY_SIZE){
             onFailure(new Error("Request body too large"));
@@ -43,6 +49,7 @@ function parseBody(req){
         const encodingType = findCharacterEncoding(req); // we do not want to call this function for each chunk received inside req.on("data") because for one request encoding type will be same for all chunks.
         req.on("data", function(chunk){
 
+            timeout = resetTimeout(); // resetting the timeout for each chunk received because if client is sending data in chunks then we should not destroy the request until all chunks are received. So we are resetting the timeout for each chunk received.
             // although we are already checking content-length header size above but still client can fake that header and send large payload so we are checking the actual size of data received here.
             chunkSize += chunk.length;
             if(chunkSize > MAX_BODY_SIZE){
@@ -72,6 +79,8 @@ function parseBody(req){
         })
 
         req.on("end", function(){
+
+            clearTimeout(timeout);
 
             var contentType = req.headers["content-type"]; // because may be client did not send content-type header so it's good to check in below if()
             if(contentType && contentType.startsWith("application/json")){ // because content-type can be "application/json; charset=utf-8" or "application/json; charset=ISO-8859-1" etc. so we are using startsWith() instead of ===
@@ -121,6 +130,14 @@ function parseBody(req){
                 onSuccess(data);
             }
         })
+
+        function resetTimeout(){
+            clearTimeout(timeout);
+            return setTimeout(function(){
+                onFailure(new Error("Timeout"));
+                req.destroy();
+            }, 30000);
+        }
     })
 }
 
@@ -286,4 +303,20 @@ But when client sends the character encoding along with the payload then server 
 Usually clients sends like:
 Content-Type: application/json; charset = utf-8
 Content-Type: application/xml; charset = utf-16
+
+#9.....
+lets understand what's need is. We want when a client sent a request with methods like: POST, PUT, PATCH then from createServer() of the server.js this body-parser method is called to parse the body/payload..
+Now what if client is not sending the payload/data after the connection is established? Then our Promise of bodyParse() will never resolve and keep waiting forever because req.on("data") will never be called and that's why req.on("end") will never be called.
+So the timeout is required to destroy the request to save the server resources.
+Solution is:
+we will set time out at 2 places.
+1st inside the Promise and before the req.on("data"); ===> because it is possible that client did not sent a byte/data after connecting.
+2nd inside the req.on("data"); ===> because may be client is taking too long to send the bytes in-between, as we know for each chunk received the req.on("data") is called.
+Now lets look at setTimeout(callbackFunction(), time)   ===> 2nd arg is time in milisecond, 1st arg is a callback function which gets executed after timer is up.
+
+What is resetTimeout() ==> It is just a helper function which is called inside req.on("data").
+It does clearTimeout(timeout); ==> clearTimeout() kills the timer means here when we receive the chunk, kill the timer referenced via variable 'timeout'.
+Next its returning a new setTimeout() instance which is getting stored in reference 'timeout' but why? because once clearTimeout() executes then it kills the timer and there is no way to restart that timer or reset so we pass a new timer instance  to var 'timeout'
+In Nutshell,
+Actually we are not creating 2 timers, We start one timeout before waiting for the first chunk. Every time a new chunk arrives, we cancel the previous timer and start a fresh one.
 */
