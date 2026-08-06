@@ -14,6 +14,7 @@ import responseBuilder from './response-builder.js';
 import { addRoute, matchRoute} from './router.js';
 import {homeHandler, htmlHandler, jsonHandler, xmlHandler, debugRequestHandler, emptyResponseHandler, redirectToHomePageHandler, downloadTextFileHandler, urlNotFoundHandler, methodNotAllowedHandler, echoParsedBodyHandler} from './routes/general.js';
 import {getAllUsersHandler, createUserHandler, getUserByIdHandler, partialUpdateByIdHandler, fullUpdateByIdHandler, deleteUserHandler} from './routes/users.js';
+import {getAllProductsHandler, getProductByIdHandler, createProductHandler, updateProductHandler, deleteProductHandler} from './routes/products.js';
 import {parseBody} from '../middleware/body-parser.js';
 
 addRoute("GET", "/", homeHandler);
@@ -30,7 +31,12 @@ addRoute("GET", "/users/:id", getUserByIdHandler); // #4......
 addRoute("PATCH", "/users/:id", partialUpdateByIdHandler);
 addRoute("PUT", "/users/:id", fullUpdateByIdHandler);
 addRoute("DELETE", "/users/:id", deleteUserHandler);
-addRoute("POST", "/echo", echoParsedBodyHandler)
+addRoute("POST", "/echo", echoParsedBodyHandler);
+addRoute("GET", "/products", getAllProductsHandler);
+addRoute("GET", "/products/:id", getProductByIdHandler);
+addRoute("POST", "/products", createProductHandler);
+addRoute("PUT", "/products/:id", updateProductHandler);
+addRoute("DELETE", "/products/:id", deleteProductHandler);
 
 const server = http.createServer(async function(req, res){
     console.log("Request received");

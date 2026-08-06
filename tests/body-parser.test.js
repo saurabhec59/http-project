@@ -1,12 +1,44 @@
+import { parseBody } from "../src/middleware/body-parser.js";
+
 describe("jest learning", function(){
     it("should add ", function(){
         expect(3+2).toBe(5);
     })
 })
 
+var req = {
+    body: "",
+    headers: {},
+    on: function(arg, callback){
+        if(arg === "data"){
+            callback(Buffer.from(this.body));
+        }
+        else if(arg === "end"){
+            callback();
+        }
+    },
+    destroy: function(){
+        // does noting for now
+    }
+}
+
+describe("parseBody() testing", function(){
+
+    // #1...call parseBody() with valid json body.
+    var expectedJson = {"name": "Rahul", "age": 30}; // parseBody() returns JSON object after parsing successfully.
+    it("should parse the json body ", async function(){   // async function because parseBody() returns a promise
+        req.headers["content-type"] = "application/json";
+        req.body = JSON.stringify({
+            "name": "Rahul", "age": 30
+        });
+        var result = await parseBody(req);  // parseBody() returns a promise so we need to use await to get the resolved value of that promise.
+        expect(result).toEqual(expectedJson);
+    })
+})
+
 /*
 Jest is another program which is executed by node.js itself.
-It is a testing framework which prepares testing environment, list files and collect results and many more(which I don't know 🫣).
+It is a testing framework which prepares testing environment, list files and collect results and many more(which I don't know ).
 when we do "npm install jest" then node installs this program in node modules and get listed in package.json.
 When we do npx jest then node.js executes this jest program(YES it is executed by node.js on top of it).
 Now jest prepares the testing environment like list all the .test.js files, initializes 'describe', 'it', 'expect'... Then instructs node.js to execute those files and tests .
@@ -114,4 +146,7 @@ var body = JSON.stringify({
     "age": 30
 })
 req.headers["content-type"] = "application/json";
+
+#1.....
+our parseBody() receives chunks as Buffer and then after parsing returns a JSON object.
 */
