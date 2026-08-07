@@ -1,5 +1,6 @@
 import { getAllProducts, getProductById, createProduct, updateProduct, deleteProduct } from '../../data/store.js';
 import responseBuilder from '../response-builder.js';
+import STATUS_CODES from '../../utils/status-codes.js';
 
 function getAllProductsHandler(req, res){
     var products = getAllProducts();
@@ -23,7 +24,7 @@ function createProductHandler(req, res){
     createProduct(data);
     // OPTIONAL sending all products list to verify product created
     var products = getAllProducts();
-    res.statusCode = 201;
+    res.statusCode = STATUS_CODES.CREATED;
     res.setHeader("Content-Type", "application/json");
     res.write(JSON.stringify(products));
     res.end();
@@ -41,7 +42,7 @@ function updateProductHandler(req, res){
     updateProduct(parseInt(req.params.id), req.body);
     // OPTIONAL sending all products list to verify product updated
     var products = getAllProducts();
-    res.statusCode = 200;
+    res.statusCode = STATUS_CODES.OK;
     res.setHeader("Content-Type", "application/json");
     res.write(JSON.stringify(products));
     res.end();
@@ -59,7 +60,7 @@ function deleteProductHandler(req, res){
 
     // OPTIONAL sending all Product list to verify product deleted
     var allProducts = getAllProducts();
-    res.statusCode = 200; // Ideally should be 204 No Content, but for testing purposes we are sending the list of products after deletion
+    res.statusCode = STATUS_CODES.OK; // Ideally should be 204 No Content, but for testing purposes we are sending the list of products after deletion
     res.setHeader("Content-Type", "application/json");
     res.write(JSON.stringify(allProducts));
     res.end();

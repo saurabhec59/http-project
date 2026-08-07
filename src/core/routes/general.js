@@ -1,7 +1,8 @@
 import responseBuilder from "../response-builder.js";
+import STATUS_CODES from "../../utils/status-codes.js";
 
 function homeHandler(req, res){
-    res.statusCode = 200;var html = "<h2>Home page with html content</h2>";
+    var html = "<h2>Home page with html content</h2>";
     responseBuilder.sendHtmlResponse(res, html);
 }
 
@@ -71,7 +72,7 @@ function methodNotAllowedHandler(req, res){
 
 function echoParsedBodyHandler(req, res){ // #1....
     var requestType = req.headers["content-type"];
-    res.statusCode = 200;
+    res.statusCode = STATUS_CODES.OK;
     if(requestType.startsWith("application/json") || requestType.startsWith("application/x-www-form-urlencoded")){
         res.setHeader("Content-Type", requestType);
         res.write(JSON.stringify(req.body));

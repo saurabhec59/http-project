@@ -1,47 +1,48 @@
+import STATUS_CODES from '../utils/status-codes.js';
 const responseBuilder = {
 
     sendTextResponse: function(res, text){
-        res.statusCode = 200;
+        res.statusCode = STATUS_CODES.OK;
         res.setHeader("Content-Type", "text/plain");
         res.write(text);
         res.end();
     },
 
     sendHtmlResponse: function(res, html){
-        res.statusCode = 200;
+        res.statusCode = STATUS_CODES.OK;
         res.setHeader("Content-Type", "text/html");
         res.write(html);
         res.end();
     },
 
     sendJsonResponse: function(res, json){
-        res.statusCode = 200;
+        res.statusCode = STATUS_CODES.OK;
         res.setHeader("Content-Type", "application/json");
         res.write(JSON.stringify(json));
         res.end();
     },
 
     sendXmlResponse: function(res, xml){
-        res.statusCode = 200;
+        res.statusCode = STATUS_CODES.OK;
         res.setHeader("Content-Type", "application/xml");
         res.write(xml);
         res.end();
     },
 
     sendEmptyResponse: function(res){
-        res.statusCode = 204; // this code means url is correct but there is nothing to return as body/payload
+        res.statusCode = STATUS_CODES.NO_CONTENT; // this code means url is correct but there is nothing to return as body/payload
         res.end();
     },
 
     sendRedirectResponse: function(res, url){
-        res.statusCode = 302; // 302 is to redirect to another url when requested resource has been moved temporarily to another url
+        res.statusCode = STATUS_CODES.FOUND; // 302 is to redirect to another url when requested resource has been moved temporarily to another url
         res.setHeader("Content-Type", "text/plain");
         res.setHeader("Location", url); // #4
         res.end();
     },
 
     sendTextFileDownloadResponse: function(res, text){  // #5... task was to send file data and ask client to download it
-        res.statusCode = 200;
+        res.statusCode = STATUS_CODES.OK;
         res.setHeader("Content-Type", "text/plain");
         res.setHeader("Content-Disposition", "attachment; filename=\"myfile.txt\""); // filename attribute tells client that while saving use this name for the file. The weired syntax is js escaping.
         res.write(text);
@@ -49,21 +50,21 @@ const responseBuilder = {
     },
 
     send400Response: function(res, html){
-        res.statusCode = 400;
+        res.statusCode = STATUS_CODES.BAD_REQUEST;
         res.setHeader("Content-Type", "text/html");
         res.write(html);
         res.end();
     },
 
     send404Response: function(res, html){
-        res.statusCode = 404;
+        res.statusCode = STATUS_CODES.NOT_FOUND;
         res.setHeader("Content-Type", "text/html");
         res.write(html);
         res.end();
     },
 
     send405Response: function(res, html){
-        res.statusCode = 405;
+        res.statusCode = STATUS_CODES.METHOD_NOT_ALLOWED;
         res.setHeader("Content-Type", "text/html");
         res.write(html);
         res.end();

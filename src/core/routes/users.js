@@ -1,5 +1,6 @@
 import { getAll, create, getById, update, deleteById } from '../../data/store.js';
 import responseBuilder from '../response-builder.js';
+import STATUS_CODES from '../../utils/status-codes.js';
 
 function getAllUsersHandler(req, res){
     var users = getAll();
@@ -11,7 +12,7 @@ function createUserHandler(req, res){
     var user = req.body;
     create(user);
     // to varify data was saved
-    res.statusCode = 201; // 201 means resource is created successfully
+    res.statusCode = STATUS_CODES.CREATED; // 201 means resource is created successfully
     res.setHeader("Content-Type", "application/json"); // #1....
     res.write(JSON.stringify(getAll()));
     res.end();
@@ -25,7 +26,7 @@ function getUserByIdHandler(req, res){
         responseBuilder.send404Response(res, html);
         return;
     }
-    res.statusCode = 200;
+    res.statusCode = STATUS_CODES.OK;
     res.setHeader("Content-Type", "application/json");
     res.write(JSON.stringify(user));
     res.end();
@@ -50,7 +51,7 @@ function partialUpdateByIdHandler(req, res){
     update(parseInt(req.params.id), user);
     // OPTIONAL sending all user data after update
     var allUser = getAll();
-    res.statusCode = 200;
+    res.statusCode = STATUS_CODES.OK;
     res.setHeader("Content-Type", "application/json");
     res.write(JSON.stringify(allUser));
     res.end();
@@ -78,7 +79,7 @@ function fullUpdateByIdHandler(req, res){
     update(parseInt(req.params.id), user);
     // OPTIONAL sending all user data after update
     var allUser = getAll();
-    res.statusCode = 200;
+    res.statusCode = STATUS_CODES.OK;
     res.setHeader("Content-Type", "application/json");
     res.write(JSON.stringify(allUser));
     res.end();
@@ -98,7 +99,7 @@ function deleteUserHandler(req, res){
 
     // OPTIONAL sending all users list to verify user deleted
     var allUser = getAll();
-    res.statusCode = 200; // #2...
+    res.statusCode = STATUS_CODES.OK; // #2...
     res.setHeader("Content-Type", "application/json");
     res.write(JSON.stringify(allUser));
     res.end();
