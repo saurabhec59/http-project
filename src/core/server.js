@@ -16,7 +16,7 @@ import {homeHandler, htmlHandler, jsonHandler, xmlHandler, debugRequestHandler, 
 import {getAllUsersHandler, createUserHandler, getUserByIdHandler, partialUpdateByIdHandler, fullUpdateByIdHandler, deleteUserHandler} from './routes/users.js';
 import {getAllProductsHandler, getProductByIdHandler, createProductHandler, updateProductHandler, deleteProductHandler} from './routes/products.js';
 import {parseBody} from '../middleware/body-parser.js';
-import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, requestTimeOut, payloadTooLarge, conflict, unprocessableEntity, internalServerError} from '../utils/error-responses.js';
+import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, requestTimeOut, payloadTooLarge, conflict, unprocessableEntity, internalServerError, unsupportedMediaType} from '../utils/error-responses.js';
 
 addRoute("GET", "/", homeHandler);
 addRoute("GET", "/html", htmlHandler);
@@ -75,8 +75,21 @@ const server = http.createServer(async function(req, res){
         try{
             req.body = await parseBody(req);
         }catch(e){
-            var message = badRequest(e.message);
-            responseBuilder.send400Response(res, message);
+            // parseBody() attaches a statusCode to each error so we know exactly which HTTP response to send.
+            if(e.statusCode === 408){
+                var message = requestTimeOut(e.message);
+                responseBuilder.send408Response(res, message);
+            } else if(e.statusCode === 413){
+                var message = payloadTooLarge(e.message);
+                responseBuilder.send413Response(res, message);
+            } else if(e.statusCode === 415){
+                var message = unsupportedMediaType(e.message);
+                responseBuilder.send415Response(res, message);
+            }
+            else {
+                var message = badRequest(e.message);
+                responseBuilder.send400Response(res, message);
+            }
             return;
         }
     }

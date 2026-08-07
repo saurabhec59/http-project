@@ -90,7 +90,16 @@ function internalServerError(message){
     return errorMessage;
 }
 
-export { badRequest, unauthorized, forbidden, notFound, methodNotAllowed, requestTimeOut, payloadTooLarge, conflict, unprocessableEntity, internalServerError };
+function unsupportedMediaType(message){
+    var errorMessage = {
+        status: STATUS_CODES.UNSUPPORTED_MEDIA_TYPE,
+        error: "Unsupported Media Type",
+        message: message
+    }
+    return errorMessage;
+}
+
+export { badRequest, unauthorized, forbidden, notFound, methodNotAllowed, requestTimeOut, payloadTooLarge, conflict, unprocessableEntity, internalServerError, unsupportedMediaType };
 /*
 Problem:
 Till now all request handlers like general.js, products.js, users.js are writing their own error messages like:

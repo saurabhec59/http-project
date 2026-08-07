@@ -30,13 +30,18 @@ function parseBody(req){
 
         // #9....  Setting time out if client did not sent bytes/payload after connection
         var timeout = setTimeout(function(){
-            onFailure(new Error ("Timeout"));
+            var error = new Error("Request timed out"); // #10....
+            error.statusCode = 408; // 408 REQUEST_TIMEOUT
+            onFailure(error);
             req.destroy();
 
         }, 30000);
         // preventing server from processing large malicious or fake requests ===>  #5......
         if(req.headers["content-length"] && parseInt(req.headers["content-length"]) > MAX_BODY_SIZE){
-            onFailure(new Error("Request body too large"));
+            var error = new Error("Request body too large");
+            error.statusCode = 413; // PAYLOAD_TOO_LARGE
+            clearTimeout(timeout); // cancel the timer so it doesn't fire again after we already rejected
+            onFailure(error);
             return;
             /*
                 it's not always guaranteed that each request with a body/payload will have header "Content-Length" but as for a preventive measure we can check that if client has sent that header
@@ -53,8 +58,11 @@ function parseBody(req){
             // although we are already checking content-length header size above but still client can fake that header and send large payload so we are checking the actual size of data received here.
             chunkSize += chunk.length;
             if(chunkSize > MAX_BODY_SIZE){
-                onFailure(new Error("Request body too large"));
-                req.destroy(); // this will stop further processing of request otherwise node can still keep receiving data.
+                var error = new Error("Request body too large");
+                error.statusCode = 413; // PAYLOAD_TOO_LARGE
+                clearTimeout(timeout); // cancel the timer so it doesn't fire again after we already rejected
+                onFailure(error);
+                req.destroy();
                 return;
             }
 
@@ -66,7 +74,10 @@ function parseBody(req){
                 }
                 else{
                     // if encodingType is not supported by Node.js then we can not process the request body and we should reject the request.
-                    onFailure(new Error("Unsupported character encoding: " + encodingType));
+                    var error = new Error("Unsupported character encoding: " + encodingType);
+                    error.statusCode = 415; // UNSUPPORTED_MEDIA_TYPE
+                    clearTimeout(timeout); // cancel the timer so it doesn't fire again after we already rejected
+                    onFailure(error);
                     req.destroy();
                     return;
                 }
@@ -89,6 +100,7 @@ function parseBody(req){
                     onSuccess(data);
                     return;
                 }catch(e){
+                    e.statusCode = 400; // BAD_REQUEST
                     onFailure(e);
                 }
             }
@@ -122,6 +134,7 @@ function parseBody(req){
                     onSuccess(parsedData);
                     return;
                 }catch(e){
+                    e.statusCode = 400; // BAD_REQUEST
                     onFailure(e);
                 }
             }
@@ -134,7 +147,9 @@ function parseBody(req){
         function resetTimeout(){
             clearTimeout(timeout);
             return setTimeout(function(){
-                onFailure(new Error("Timeout"));
+                var error = new Error("Request timed out");
+                error.statusCode = 408; // 408 REQUEST_TIMEOUT
+                onFailure(error);
                 req.destroy();
             }, 30000);
         }
@@ -319,4 +334,19 @@ It does clearTimeout(timeout); ==> clearTimeout() kills the timer means here whe
 Next its returning a new setTimeout() instance which is getting stored in reference 'timeout' but why? because once clearTimeout() executes then it kills the timer and there is no way to restart that timer or reset so we pass a new timer instance  to var 'timeout'
 In Nutshell,
 Actually we are not creating 2 timers, We start one timeout before waiting for the first chunk. Every time a new chunk arrives, we cancel the previous timer and start a fresh one.
+
+# 10....
+Understand how many errors our current implementation of parseBody() is throwing..
+1st -> Timeout -> which is 408 REQUEST_TIMEOUT
+2nd -> Request body too large -> which is 413 PAYLOAD_TOO_LARGE
+3rd -> Unsupported character encoding -> which is 415 UNSUPPORTED_MEDIA_TYPE
+4th -> JSON.parse() error -> while parsing content-type = "application/json" -> which is 400 BAD_REQUEST
+5th -> XML parsing error -> while parsing content-type = "application/xml" -> which is again 400 BAD_REQUEST
+
+But in server.js while calling parseBody() we were doing  => responseBuilder.send400Response(res, message);
+Means for each error send by Promise of parseBody() was treated as 400 BAD_REQUEST.
+
+That's why we are updating the parseBody(), now before throwing the error we will add a property 'statusCode' to that error object so that when server.js receives that error so based on it's statusCode it can call the specific responseBuilder method
+instead of always calling send400Response().
+
 */

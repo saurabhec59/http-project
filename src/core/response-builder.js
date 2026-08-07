@@ -68,6 +68,27 @@ const responseBuilder = {
         res.setHeader("Content-Type", "application/json");
         res.write(JSON.stringify(message));
         res.end();
+    },
+
+    send408Response: function(res, message){
+        res.statusCode = STATUS_CODES.REQUEST_TIMEOUT;
+        res.setHeader("Content-Type", "application/json");
+        res.write(JSON.stringify(message));
+        res.end();
+    },
+
+    send413Response: function(res, message){
+        res.statusCode = STATUS_CODES.PAYLOAD_TOO_LARGE;
+        res.setHeader("Content-Type", "application/json");
+        res.write(JSON.stringify(message));
+        res.end();
+    },
+
+    send415Response: function(res, message){
+        res.statusCode = STATUS_CODES.UNSUPPORTED_MEDIA_TYPE;
+        res.setHeader("Content-Type", "application/json");
+        res.write(JSON.stringify(message));
+        res.end();
     }
 }
 
