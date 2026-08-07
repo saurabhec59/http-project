@@ -33,7 +33,7 @@ function parseBody(req){
             var error = new Error("Request timed out"); // #10....
             error.statusCode = 408; // 408 REQUEST_TIMEOUT
             onFailure(error);
-            req.destroy();
+            req.resume(); // #11...
 
         }, 30000);
         // preventing server from processing large malicious or fake requests ===>  #5......
@@ -62,7 +62,7 @@ function parseBody(req){
                 error.statusCode = 413; // PAYLOAD_TOO_LARGE
                 clearTimeout(timeout); // cancel the timer so it doesn't fire again after we already rejected
                 onFailure(error);
-                req.destroy();
+                req.resume();
                 return;
             }
 
@@ -78,7 +78,7 @@ function parseBody(req){
                     error.statusCode = 415; // UNSUPPORTED_MEDIA_TYPE
                     clearTimeout(timeout); // cancel the timer so it doesn't fire again after we already rejected
                     onFailure(error);
-                    req.destroy();
+                    req.resume();
                     return;
                 }
             }else{
@@ -150,7 +150,7 @@ function parseBody(req){
                 var error = new Error("Request timed out");
                 error.statusCode = 408; // 408 REQUEST_TIMEOUT
                 onFailure(error);
-                req.destroy();
+                req.resume();
             }, 30000);
         }
     })
@@ -349,4 +349,14 @@ Means for each error send by Promise of parseBody() was treated as 400 BAD_REQUE
 That's why we are updating the parseBody(), now before throwing the error we will add a property 'statusCode' to that error object so that when server.js receives that error so based on it's statusCode it can call the specific responseBuilder method
 instead of always calling send400Response().
 
+#11....
+onFailure() is a callback function of Promise, so it did not run the catch block in server.js immediately.
+So when we do :
+onFailure(error);
+req.destroy();
+
+Here req.destroy() gets executed immediately, so there is high chance that before catch block in server.js gets executed, the req.destroy() will destroy the entire socket connection, so there is no connection open to send the error response
+from catch block And client will get empty response instead of server error response.
+So the better choice is to do ==> req.resume(); which will discard the upcoming data and node will not receive further data from client but the connection will remain open,
+later the res.end() statement inside the responseBuilder methods will close the connection.
 */
