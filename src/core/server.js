@@ -16,6 +16,7 @@ import {homeHandler, htmlHandler, jsonHandler, xmlHandler, debugRequestHandler, 
 import {getAllUsersHandler, createUserHandler, getUserByIdHandler, partialUpdateByIdHandler, fullUpdateByIdHandler, deleteUserHandler} from './routes/users.js';
 import {getAllProductsHandler, getProductByIdHandler, createProductHandler, updateProductHandler, deleteProductHandler} from './routes/products.js';
 import {parseBody} from '../middleware/body-parser.js';
+import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, requestTimeOut, payloadTooLarge, conflict, unprocessableEntity, internalServerError} from '../utils/error-responses.js';
 
 addRoute("GET", "/", homeHandler);
 addRoute("GET", "/html", htmlHandler);
@@ -74,8 +75,8 @@ const server = http.createServer(async function(req, res){
         try{
             req.body = await parseBody(req);
         }catch(e){
-            var html = "<h2>" + e.message + "</h2>";
-            responseBuilder.send400Response(res, html);
+            var message = badRequest(e.message);
+            responseBuilder.send400Response(res, message);
             return;
         }
     }

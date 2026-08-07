@@ -13,8 +13,8 @@ function getProductByIdHandler(req, res){
     var pId = parseInt(req.params.id);
     var product = getProductById(pId);
     if(!product){
-        var html = "<h2>Product not found</h2>";
-        responseBuilder.send404Response(res, html);
+        var message = notFound("Product with id " + req.params.id + " not found");
+        responseBuilder.send404Response(res, message);
         return;
     }
     responseBuilder.sendJsonResponse(res, product);
@@ -35,8 +35,8 @@ function updateProductHandler(req, res){
     var product = getProductById(parseInt(req.params.id));
 
     if(!product){
-        var html = "<h2>Product not found</h2>";
-        responseBuilder.send404Response(res, html);
+        var message = notFound("Product with id " + req.params.id + " not found");
+        responseBuilder.send404Response(res, message);
         return;
     }
 
@@ -52,8 +52,8 @@ function updateProductHandler(req, res){
 function deleteProductHandler(req, res){
     var product = getProductById(parseInt(req.params.id));
     if(!product){
-        var html = "<h2>Product not found</h2>";
-        responseBuilder.send404Response(res, html);
+        var message = notFound("Product with id " + req.params.id + " not found");
+        responseBuilder.send404Response(res, message);
         return;
     }
 

@@ -23,8 +23,8 @@ function createUserHandler(req, res){
 function getUserByIdHandler(req, res){
     var user = getById(parseInt(req.params.id));
     if(!user){ // because getBYId() only loops through the array and if it does not find any user then it will not return anything and this variable 'user' will be undefined.
-        var html = "<h2>User not found</h2>";
-        responseBuilder.send404Response(res, html);
+        var message = notFound("User with id " + req.params.id + " not found");
+        responseBuilder.send404Response(res, message);
         return;
     }
     res.statusCode = STATUS_CODES.OK;
@@ -41,8 +41,8 @@ function partialUpdateByIdHandler(req, res){
     var user = getById(parseInt(req.params.id));
 
     if(!user){
-        var html = "<h2>User not found</h2>";
-        responseBuilder.send404Response(res, html);
+        var message = notFound("User with id " + req.params.id + " not found");
+        responseBuilder.send404Response(res, message);
         return;
     }
 
@@ -68,8 +68,8 @@ function fullUpdateByIdHandler(req, res){
     var user = getById(parseInt(req.params.id));
 
     if(!user){
-        var html = "<h2>User not found</h2>";
-        responseBuilder.send404Response(res, html);
+        var message = notFound("User with id " + req.params.id + " not found");
+        responseBuilder.send404Response(res, message);
         return;
     }
 
@@ -90,8 +90,8 @@ function fullUpdateByIdHandler(req, res){
 function deleteUserHandler(req, res){
     var user = getById(parseInt(req.params.id));
     if(!user){
-        var html = "<h2>User not found</h2>";
-        responseBuilder.send404Response(res, html);
+        var message = notFound("User with id " + req.params.id + " not found");
+        responseBuilder.send404Response(res, message);
         return;
     }
 

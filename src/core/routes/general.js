@@ -62,13 +62,13 @@ function downloadTextFileHandler(req, res){
 }
 
 function urlNotFoundHandler(req, res){
-    var html = "<h2>Mind your url</h2>";
-    responseBuilder.send404Response(res, html);
+    var message = notFound("url not found");
+    responseBuilder.send404Response(res, message);
 }
 
 function methodNotAllowedHandler(req, res){
-    var html = "<h2>Mind your method</h2>";
-    responseBuilder.send405Response(res, html);
+    var message = methodNotAllowed("method " + req.method + " not allowed");
+    responseBuilder.send405Response(res, message);
 }
 
 function echoParsedBodyHandler(req, res){ // #1....
