@@ -52,21 +52,21 @@ const responseBuilder = {
     send400Response: function(res, message){
         res.statusCode = STATUS_CODES.BAD_REQUEST;
         res.setHeader("Content-Type", "application/json");
-        res.write(message);
+        res.write(JSON.stringify(message));
         res.end();
     },
 
     send404Response: function(res, message){
         res.statusCode = STATUS_CODES.NOT_FOUND;
         res.setHeader("Content-Type", "application/json");
-        res.write(message);
+        res.write(JSON.stringify(message));
         res.end();
     },
 
     send405Response: function(res, message){
         res.statusCode = STATUS_CODES.METHOD_NOT_ALLOWED;
         res.setHeader("Content-Type", "application/json");
-        res.write(message);
+        res.write(JSON.stringify(message));
         res.end();
     }
 }
