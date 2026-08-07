@@ -1,6 +1,7 @@
 import responseBuilder from "../response-builder.js";
 import STATUS_CODES from "../../utils/status-codes.js";
 import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, requestTimeOut, payloadTooLarge, conflict, unprocessableEntity, internalServerError } from '../../utils/error-responses.js';
+import {parseContentType} from '../../middleware/headers.js';
 
 function homeHandler(req, res){
     var html = "<h2>Home page with html content</h2>";
@@ -72,15 +73,15 @@ function methodNotAllowedHandler(req, res){
 }
 
 function echoParsedBodyHandler(req, res){ // #1....
-    var requestType = req.headers["content-type"];
+    var contentType = parseContentType(req);
     res.statusCode = STATUS_CODES.OK;
-    if(requestType.startsWith("application/json") || requestType.startsWith("application/x-www-form-urlencoded")){
-        res.setHeader("Content-Type", requestType);
+    if(contentType.mimeType === "application/json" || contentType.mimeType === "application/x-www-form-urlencoded"){
+        res.setHeader("Content-Type", contentType.mimeType);
         res.write(JSON.stringify(req.body));
         res.end();
     }
     else{
-        res.setHeader("Content-Type", requestType);
+        res.setHeader("Content-Type", contentType.mimeType);
         res.write(req.body);
         res.end();
     }

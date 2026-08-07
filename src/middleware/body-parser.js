@@ -11,6 +11,7 @@
     Query parameters should be parsed separately using URL parsing utilities and should not be handled inside body-parser middleware.
 */
 import { XMLParser } from "fast-xml-parser";
+import { parseContentType } from './headers.js';
 const xmlParser = new XMLParser(); // we do not want to create new instance of XMLParser for each request so we are creating it once and reusing it for all requests.
 function parseBody1(req){  // #1....
     var body = "";
@@ -51,7 +52,7 @@ function parseBody(req){
 
         var data = "";
         var chunkSize = 0;
-        const encodingType = findCharacterEncoding(req); // we do not want to call this function for each chunk received inside req.on("data") because for one request encoding type will be same for all chunks.
+        const encodingType = parseContentType(req).parameters["charset"]; // we do not want to call this function for each chunk received inside req.on("data") because for one request encoding type will be same for all chunks.
         req.on("data", function(chunk){
 
             timeout = resetTimeout(); // resetting the timeout for each chunk received because if client is sending data in chunks then we should not destroy the request until all chunks are received. So we are resetting the timeout for each chunk received.
@@ -93,8 +94,8 @@ function parseBody(req){
 
             clearTimeout(timeout);
 
-            var contentType = req.headers["content-type"]; // because may be client did not send content-type header so it's good to check in below if()
-            if(contentType && contentType.startsWith("application/json")){ // because content-type can be "application/json; charset=utf-8" or "application/json; charset=ISO-8859-1" etc. so we are using startsWith() instead of ===
+            var contentType = parseContentType(req); // storing once and reusing.
+            if(contentType.mimeType === "application/json"){
                 try{
                     data = JSON.parse(data);
                     onSuccess(data);
@@ -104,17 +105,17 @@ function parseBody(req){
                     onFailure(e);
                 }
             }
-            else if(contentType && contentType.startsWith("application/x-www-form-urlencoded")){ // #3....
+            else if(contentType.mimeType === "application/x-www-form-urlencoded"){ // #3....
                 var parsedData = new URLSearchParams(data); // #4.....
                 parsedData = Object.fromEntries(parsedData);
                 onSuccess(parsedData);
                 return;
             }
             // #6...... NOTE: I am aware that this is not a complete and fully correct implementation of multipart/form-data parsing, I tried understanding basics of it.
-            else if(contentType && contentType.startsWith("multipart/form-data")){
+            else if(contentType.mimeType === "multipart/form-data"){
                 var parsedData = {};
                 // extracting the boundary parameter, clients adds 2 extra hyphens in body that's why we are adding as well.
-                var boundary  = "--" + req.headers["content-type"].split("boundary=")[1];
+                var boundary  = "--" + contentType.parameters["boundary"];
                 var fields = data.split(boundary); // #7......
                 for(var i = 1; i<fields.length; i++){
                     var field = fields[i].split("\r\n\r\n");
@@ -127,7 +128,7 @@ function parseBody(req){
                 onSuccess(parsedData);
                 return;
             }
-            else if(contentType && contentType.startsWith("application/xml")){
+            else if(contentType.mimeType === "application/xml"){
                 // node.js do not have built-in xml parser so we are using 3rd party library "fast-xml-parser" to parse xml data.
                 try{
                     var parsedData = xmlParser.parse(data);
@@ -156,22 +157,7 @@ function parseBody(req){
     })
 }
 
-// addition this function as utility
-function findCharacterEncoding(req){
-    var contentType = req.headers["content-type"];
-    var encodingType;
 
-    if(contentType){
-        var parameters = contentType.split(";");
-        for(var i = 1; i<parameters.length; i++){
-            if(parameters[i].trim().startsWith("charset")){
-                encodingType = parameters[i].split("=")[1].trim();
-            }
-        }
-    }
-
-    return encodingType;
-}
 
 export { parseBody };
 
