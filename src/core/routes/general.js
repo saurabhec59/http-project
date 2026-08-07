@@ -1,5 +1,6 @@
 import responseBuilder from "../response-builder.js";
 import STATUS_CODES from "../../utils/status-codes.js";
+import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, requestTimeOut, payloadTooLarge, conflict, unprocessableEntity, internalServerError } from '../../utils/error-responses.js';
 
 function homeHandler(req, res){
     var html = "<h2>Home page with html content</h2>";

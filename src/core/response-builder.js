@@ -49,24 +49,24 @@ const responseBuilder = {
         res.end();
     },
 
-    send400Response: function(res, html){
+    send400Response: function(res, message){
         res.statusCode = STATUS_CODES.BAD_REQUEST;
-        res.setHeader("Content-Type", "text/html");
-        res.write(html);
+        res.setHeader("Content-Type", "application/json");
+        res.write(message);
         res.end();
     },
 
-    send404Response: function(res, html){
+    send404Response: function(res, message){
         res.statusCode = STATUS_CODES.NOT_FOUND;
-        res.setHeader("Content-Type", "text/html");
-        res.write(html);
+        res.setHeader("Content-Type", "application/json");
+        res.write(message);
         res.end();
     },
 
-    send405Response: function(res, html){
+    send405Response: function(res, message){
         res.statusCode = STATUS_CODES.METHOD_NOT_ALLOWED;
-        res.setHeader("Content-Type", "text/html");
-        res.write(html);
+        res.setHeader("Content-Type", "application/json");
+        res.write(message);
         res.end();
     }
 }
