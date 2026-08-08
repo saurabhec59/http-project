@@ -1,7 +1,10 @@
 import responseBuilder from "../response-builder.js";
+import STATUS_CODES from "../../utils/status-codes.js";
+import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, requestTimeOut, payloadTooLarge, conflict, unprocessableEntity, internalServerError } from '../../utils/error-responses.js';
+import {parseContentType} from '../../middleware/headers.js';
 
 function homeHandler(req, res){
-    res.statusCode = 200;var html = "<h2>Home page with html content</h2>";
+    var html = "<h2>Home page with html content</h2>";
     responseBuilder.sendHtmlResponse(res, html);
 }
 
@@ -60,25 +63,25 @@ function downloadTextFileHandler(req, res){
 }
 
 function urlNotFoundHandler(req, res){
-    var html = "<h2>Mind your url</h2>";
-    responseBuilder.send404Response(res, html);
+    var message = notFound("url not found");
+    responseBuilder.send404Response(res, message);
 }
 
 function methodNotAllowedHandler(req, res){
-    var html = "<h2>Mind your method</h2>";
-    responseBuilder.send405Response(res, html);
+    var message = methodNotAllowed("method " + req.method + " not allowed");
+    responseBuilder.send405Response(res, message);
 }
 
 function echoParsedBodyHandler(req, res){ // #1....
-    var requestType = req.headers["content-type"];
-    res.statusCode = 200;
-    if(requestType.startsWith("application/json") || requestType.startsWith("application/x-www-form-urlencoded")){
-        res.setHeader("Content-Type", requestType);
+    var contentType = parseContentType(req);
+    res.statusCode = STATUS_CODES.OK;
+    if(contentType.mimeType === "application/json" || contentType.mimeType === "application/x-www-form-urlencoded"){
+        res.setHeader("Content-Type", contentType.mimeType);
         res.write(JSON.stringify(req.body));
         res.end();
     }
     else{
-        res.setHeader("Content-Type", requestType);
+        res.setHeader("Content-Type", contentType.mimeType);
         res.write(req.body);
         res.end();
     }

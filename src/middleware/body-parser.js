@@ -11,6 +11,7 @@
     Query parameters should be parsed separately using URL parsing utilities and should not be handled inside body-parser middleware.
 */
 import { XMLParser } from "fast-xml-parser";
+import { parseContentType } from './headers.js';
 const xmlParser = new XMLParser(); // we do not want to create new instance of XMLParser for each request so we are creating it once and reusing it for all requests.
 function parseBody1(req){  // #1....
     var body = "";
@@ -30,13 +31,18 @@ function parseBody(req){
 
         // #9....  Setting time out if client did not sent bytes/payload after connection
         var timeout = setTimeout(function(){
-            onFailure(new Error ("Timeout"));
-            req.destroy();
+            var error = new Error("Request timed out"); // #10....
+            error.statusCode = 408; // 408 REQUEST_TIMEOUT
+            onFailure(error);
+            req.resume(); // #11...
 
         }, 30000);
         // preventing server from processing large malicious or fake requests ===>  #5......
         if(req.headers["content-length"] && parseInt(req.headers["content-length"]) > MAX_BODY_SIZE){
-            onFailure(new Error("Request body too large"));
+            var error = new Error("Request body too large");
+            error.statusCode = 413; // PAYLOAD_TOO_LARGE
+            clearTimeout(timeout); // cancel the timer so it doesn't fire again after we already rejected
+            onFailure(error);
             return;
             /*
                 it's not always guaranteed that each request with a body/payload will have header "Content-Length" but as for a preventive measure we can check that if client has sent that header
@@ -46,15 +52,18 @@ function parseBody(req){
 
         var data = "";
         var chunkSize = 0;
-        const encodingType = findCharacterEncoding(req); // we do not want to call this function for each chunk received inside req.on("data") because for one request encoding type will be same for all chunks.
+        const encodingType = parseContentType(req).parameters["charset"]; // we do not want to call this function for each chunk received inside req.on("data") because for one request encoding type will be same for all chunks.
         req.on("data", function(chunk){
 
             timeout = resetTimeout(); // resetting the timeout for each chunk received because if client is sending data in chunks then we should not destroy the request until all chunks are received. So we are resetting the timeout for each chunk received.
             // although we are already checking content-length header size above but still client can fake that header and send large payload so we are checking the actual size of data received here.
             chunkSize += chunk.length;
             if(chunkSize > MAX_BODY_SIZE){
-                onFailure(new Error("Request body too large"));
-                req.destroy(); // this will stop further processing of request otherwise node can still keep receiving data.
+                var error = new Error("Request body too large");
+                error.statusCode = 413; // PAYLOAD_TOO_LARGE
+                clearTimeout(timeout); // cancel the timer so it doesn't fire again after we already rejected
+                onFailure(error);
+                req.resume();
                 return;
             }
 
@@ -66,8 +75,11 @@ function parseBody(req){
                 }
                 else{
                     // if encodingType is not supported by Node.js then we can not process the request body and we should reject the request.
-                    onFailure(new Error("Unsupported character encoding: " + encodingType));
-                    req.destroy();
+                    var error = new Error("Unsupported character encoding: " + encodingType);
+                    error.statusCode = 415; // UNSUPPORTED_MEDIA_TYPE
+                    clearTimeout(timeout); // cancel the timer so it doesn't fire again after we already rejected
+                    onFailure(error);
+                    req.resume();
                     return;
                 }
             }else{
@@ -82,27 +94,28 @@ function parseBody(req){
 
             clearTimeout(timeout);
 
-            var contentType = req.headers["content-type"]; // because may be client did not send content-type header so it's good to check in below if()
-            if(contentType && contentType.startsWith("application/json")){ // because content-type can be "application/json; charset=utf-8" or "application/json; charset=ISO-8859-1" etc. so we are using startsWith() instead of ===
+            var contentType = parseContentType(req); // storing once and reusing.
+            if(contentType.mimeType === "application/json"){
                 try{
                     data = JSON.parse(data);
                     onSuccess(data);
                     return;
                 }catch(e){
+                    e.statusCode = 400; // BAD_REQUEST
                     onFailure(e);
                 }
             }
-            else if(contentType && contentType.startsWith("application/x-www-form-urlencoded")){ // #3....
+            else if(contentType.mimeType === "application/x-www-form-urlencoded"){ // #3....
                 var parsedData = new URLSearchParams(data); // #4.....
                 parsedData = Object.fromEntries(parsedData);
                 onSuccess(parsedData);
                 return;
             }
             // #6...... NOTE: I am aware that this is not a complete and fully correct implementation of multipart/form-data parsing, I tried understanding basics of it.
-            else if(contentType && contentType.startsWith("multipart/form-data")){
+            else if(contentType.mimeType === "multipart/form-data"){
                 var parsedData = {};
                 // extracting the boundary parameter, clients adds 2 extra hyphens in body that's why we are adding as well.
-                var boundary  = "--" + req.headers["content-type"].split("boundary=")[1];
+                var boundary  = "--" + contentType.parameters["boundary"];
                 var fields = data.split(boundary); // #7......
                 for(var i = 1; i<fields.length; i++){
                     var field = fields[i].split("\r\n\r\n");
@@ -115,13 +128,14 @@ function parseBody(req){
                 onSuccess(parsedData);
                 return;
             }
-            else if(contentType && contentType.startsWith("application/xml")){
+            else if(contentType.mimeType === "application/xml"){
                 // node.js do not have built-in xml parser so we are using 3rd party library "fast-xml-parser" to parse xml data.
                 try{
                     var parsedData = xmlParser.parse(data);
                     onSuccess(parsedData);
                     return;
                 }catch(e){
+                    e.statusCode = 400; // BAD_REQUEST
                     onFailure(e);
                 }
             }
@@ -134,29 +148,16 @@ function parseBody(req){
         function resetTimeout(){
             clearTimeout(timeout);
             return setTimeout(function(){
-                onFailure(new Error("Timeout"));
-                req.destroy();
+                var error = new Error("Request timed out");
+                error.statusCode = 408; // 408 REQUEST_TIMEOUT
+                onFailure(error);
+                req.resume();
             }, 30000);
         }
     })
 }
 
-// addition this function as utility
-function findCharacterEncoding(req){
-    var contentType = req.headers["content-type"];
-    var encodingType;
 
-    if(contentType){
-        var parameters = contentType.split(";");
-        for(var i = 1; i<parameters.length; i++){
-            if(parameters[i].trim().startsWith("charset")){
-                encodingType = parameters[i].split("=")[1].trim();
-            }
-        }
-    }
-
-    return encodingType;
-}
 
 export { parseBody };
 
@@ -319,4 +320,29 @@ It does clearTimeout(timeout); ==> clearTimeout() kills the timer means here whe
 Next its returning a new setTimeout() instance which is getting stored in reference 'timeout' but why? because once clearTimeout() executes then it kills the timer and there is no way to restart that timer or reset so we pass a new timer instance  to var 'timeout'
 In Nutshell,
 Actually we are not creating 2 timers, We start one timeout before waiting for the first chunk. Every time a new chunk arrives, we cancel the previous timer and start a fresh one.
+
+# 10....
+Understand how many errors our current implementation of parseBody() is throwing..
+1st -> Timeout -> which is 408 REQUEST_TIMEOUT
+2nd -> Request body too large -> which is 413 PAYLOAD_TOO_LARGE
+3rd -> Unsupported character encoding -> which is 415 UNSUPPORTED_MEDIA_TYPE
+4th -> JSON.parse() error -> while parsing content-type = "application/json" -> which is 400 BAD_REQUEST
+5th -> XML parsing error -> while parsing content-type = "application/xml" -> which is again 400 BAD_REQUEST
+
+But in server.js while calling parseBody() we were doing  => responseBuilder.send400Response(res, message);
+Means for each error send by Promise of parseBody() was treated as 400 BAD_REQUEST.
+
+That's why we are updating the parseBody(), now before throwing the error we will add a property 'statusCode' to that error object so that when server.js receives that error so based on it's statusCode it can call the specific responseBuilder method
+instead of always calling send400Response().
+
+#11....
+onFailure() is a callback function of Promise, so it did not run the catch block in server.js immediately.
+So when we do :
+onFailure(error);
+req.destroy();
+
+Here req.destroy() gets executed immediately, so there is high chance that before catch block in server.js gets executed, the req.destroy() will destroy the entire socket connection, so there is no connection open to send the error response
+from catch block And client will get empty response instead of server error response.
+So the better choice is to do ==> req.resume(); which will discard the upcoming data and node will not receive further data from client but the connection will remain open,
+later the res.end() statement inside the responseBuilder methods will close the connection.
 */

@@ -1,5 +1,7 @@
 import { getAll, create, getById, update, deleteById } from '../../data/store.js';
 import responseBuilder from '../response-builder.js';
+import STATUS_CODES from '../../utils/status-codes.js';
+import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, requestTimeOut, payloadTooLarge, conflict, unprocessableEntity, internalServerError} from '../../utils/error-responses.js';
 
 function getAllUsersHandler(req, res){
     var users = getAll();
@@ -11,7 +13,7 @@ function createUserHandler(req, res){
     var user = req.body;
     create(user);
     // to varify data was saved
-    res.statusCode = 201; // 201 means resource is created successfully
+    res.statusCode = STATUS_CODES.CREATED; // 201 means resource is created successfully
     res.setHeader("Content-Type", "application/json"); // #1....
     res.write(JSON.stringify(getAll()));
     res.end();
@@ -21,11 +23,11 @@ function createUserHandler(req, res){
 function getUserByIdHandler(req, res){
     var user = getById(parseInt(req.params.id));
     if(!user){ // because getBYId() only loops through the array and if it does not find any user then it will not return anything and this variable 'user' will be undefined.
-        var html = "<h2>User not found</h2>";
-        responseBuilder.send404Response(res, html);
+        var message = notFound("User with id " + req.params.id + " not found");
+        responseBuilder.send404Response(res, message);
         return;
     }
-    res.statusCode = 200;
+    res.statusCode = STATUS_CODES.OK;
     res.setHeader("Content-Type", "application/json");
     res.write(JSON.stringify(user));
     res.end();
@@ -39,8 +41,8 @@ function partialUpdateByIdHandler(req, res){
     var user = getById(parseInt(req.params.id));
 
     if(!user){
-        var html = "<h2>User not found</h2>";
-        responseBuilder.send404Response(res, html);
+        var message = notFound("User with id " + req.params.id + " not found");
+        responseBuilder.send404Response(res, message);
         return;
     }
 
@@ -50,7 +52,7 @@ function partialUpdateByIdHandler(req, res){
     update(parseInt(req.params.id), user);
     // OPTIONAL sending all user data after update
     var allUser = getAll();
-    res.statusCode = 200;
+    res.statusCode = STATUS_CODES.OK;
     res.setHeader("Content-Type", "application/json");
     res.write(JSON.stringify(allUser));
     res.end();
@@ -66,8 +68,8 @@ function fullUpdateByIdHandler(req, res){
     var user = getById(parseInt(req.params.id));
 
     if(!user){
-        var html = "<h2>User not found</h2>";
-        responseBuilder.send404Response(res, html);
+        var message = notFound("User with id " + req.params.id + " not found");
+        responseBuilder.send404Response(res, message);
         return;
     }
 
@@ -78,7 +80,7 @@ function fullUpdateByIdHandler(req, res){
     update(parseInt(req.params.id), user);
     // OPTIONAL sending all user data after update
     var allUser = getAll();
-    res.statusCode = 200;
+    res.statusCode = STATUS_CODES.OK;
     res.setHeader("Content-Type", "application/json");
     res.write(JSON.stringify(allUser));
     res.end();
@@ -88,8 +90,8 @@ function fullUpdateByIdHandler(req, res){
 function deleteUserHandler(req, res){
     var user = getById(parseInt(req.params.id));
     if(!user){
-        var html = "<h2>User not found</h2>";
-        responseBuilder.send404Response(res, html);
+        var message = notFound("User with id " + req.params.id + " not found");
+        responseBuilder.send404Response(res, message);
         return;
     }
 
@@ -98,7 +100,7 @@ function deleteUserHandler(req, res){
 
     // OPTIONAL sending all users list to verify user deleted
     var allUser = getAll();
-    res.statusCode = 200; // #2...
+    res.statusCode = STATUS_CODES.OK; // #2...
     res.setHeader("Content-Type", "application/json");
     res.write(JSON.stringify(allUser));
     res.end();
