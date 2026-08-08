@@ -17,6 +17,7 @@ import {getAllUsersHandler, createUserHandler, getUserByIdHandler, partialUpdate
 import {getAllProductsHandler, getProductByIdHandler, createProductHandler, updateProductHandler, deleteProductHandler} from './routes/products.js';
 import {parseBody} from '../middleware/body-parser.js';
 import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, requestTimeOut, payloadTooLarge, conflict, unprocessableEntity, internalServerError, unsupportedMediaType} from '../utils/error-responses.js';
+import {setCorsHeaders} from '../middleware/cors.js';
 
 addRoute("GET", "/", homeHandler);
 addRoute("GET", "/html", htmlHandler);
@@ -69,6 +70,7 @@ const server = http.createServer(async function(req, res){
 
     // there are others events as well like "close" ==> which is used when connection is closed, browser closed suddenly, TCP connection terminated. Few more events are "error", "destroy"....
 
+    setCorsHeaders(req, res); // before processing the request we are checking if client has sent Origin header then attach the response header to 'res'
     // #6......Using body-parser middleware
     var method = req.method;
     if(method === "POST" || method === "PUT" || method === "PATCH"){
