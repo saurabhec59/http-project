@@ -19,6 +19,7 @@ import {parseBody} from '../middleware/body-parser.js';
 import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, requestTimeOut, payloadTooLarge, conflict, unprocessableEntity, internalServerError, unsupportedMediaType} from '../utils/error-responses.js';
 import {setCorsHeaders} from '../middleware/cors.js';
 import {info, warn, error, debug} from '../utils/logger.js';
+import {requestLogger} from '../middleware/request-logger.js';
 
 addRoute("GET", "/", homeHandler);
 addRoute("GET", "/html", htmlHandler);
@@ -42,7 +43,7 @@ addRoute("PUT", "/products/:id", updateProductHandler);
 addRoute("DELETE", "/products/:id", deleteProductHandler);
 
 const server = http.createServer(async function(req, res){
-    info("Request Received");
+    requestLogger(req, res);
     console.log("url: " + req.url + " method: " + req.method);
     // logging 'req' object #1
     console.log("method: " + req.method);

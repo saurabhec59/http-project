@@ -1,17 +1,32 @@
+const yellow = "\x1b[33m";
+const green = "\x1b[32m";
+const red = "\x1b[31m";
+const blue = "\x1b[34m";
+const cyan = "\x1b[36m";
+const reset = "\x1b[0m";
+
 function info(message){
-    console.log("[INFO] " + message);
+    logBuilder(green, "INFO", message);
 }
 
 function warn(message){
-    console.log("[WARN] " + message);
+    logBuilder(yellow, "WARN", message);
 }
 
 function error(message){
-    console.log("[ERROR] " + message);
+    logBuilder(red, "ERROR", message);
 }
 
 function debug(message){
-    console.log("[DEBUG] " + message);
+    logBuilder(cyan, "DEBUG", message);
+}
+
+function timestamp(){
+    return new Date().toISOString(); // new Date() returns current data and time in local timezone. toISOString() converts it to UTC format.
+}
+
+function logBuilder(color, level, message){
+    console.log(color + timestamp() + " [" + level + "] " + message + reset);//#1 SINGLE MOST IMPORTANT LINE OF THIS FILE.
 }
 
 export { info, warn, error, debug };
