@@ -11,11 +11,12 @@ function getAllUsersHandler(req, res){
 function createUserHandler(req, res){
 
     var user = req.body;
-    create(user);
+    var newUser = create(user); // #3..... now after creating the new user, create() method will return the newly created user object
     // to varify data was saved
     res.statusCode = STATUS_CODES.CREATED; // 201 means resource is created successfully
     res.setHeader("Content-Type", "application/json"); // #1....
-    res.write(JSON.stringify(getAll()));
+    res.setHeader("Location", "/users/" + newUser.id);
+    res.write(JSON.stringify(newUser));
     res.end();
 
 }
@@ -117,4 +118,12 @@ means getAll() will return all users including newly created as well.
 usually after delete the status code is 204 which means operation successful & "no content" and if you try to send any payload like res.write() or res.end() then node.js
 will discard it and will not send payload to client(but deletion will happen).
 but here we want to see also that user is deleted that's why to send payload I am setting status code to 200.
+
+#3......
+Usually after creating a new resource the status code is 201 which means "created" and also we should send the newly created resource in the response body, if not entire created object then atleast the location/path of
+that object. And that path should be send in response header "Location".
+When "Location" header is sent with status code 302 that means it is redirect path and client redirects to that path, but when "Location" header is sent with status code 201 then client do not redirect and for that it
+means the path of resource is here which he can use.
+So here we changed create() of store.js to return the newly created user object after saving it.
+After that the handler of this file will send that returned created user object in response body instead of sending all users. Also we added "Location" header in response with path.
 */

@@ -22,12 +22,11 @@ function getProductByIdHandler(req, res){
 
 function createProductHandler(req, res){
     var data = req.body;
-    createProduct(data);
-    // OPTIONAL sending all products list to verify product created
-    var products = getAllProducts();
+    var product = createProduct(data);
     res.statusCode = STATUS_CODES.CREATED;
     res.setHeader("Content-Type", "application/json");
-    res.write(JSON.stringify(products));
+    res.setHeader("Location", "/products/" + product.id);// following REST best practices, returning the location and created product in response.
+    res.write(JSON.stringify(product));
     res.end();
 }
 
