@@ -5,6 +5,7 @@ import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, request
 
 function getAllUsersHandler(req, res){
     var users = getAll();
+    res.setHeader("Cache-Control", "max-age=10"); // #4.....
     responseBuilder.sendJsonResponse(res, users);
 }
 
@@ -103,6 +104,7 @@ function deleteUserHandler(req, res){
     var allUser = getAll();
     res.statusCode = STATUS_CODES.OK; // #2...
     res.setHeader("Content-Type", "application/json");
+    res.setHeader("Cache-Control", "no-cache"); // we are allowing client to cache this response but he must validate with server before using that cached response because after each deletion the updated list should be sent to client.
     res.write(JSON.stringify(allUser));
     res.end();
 }
@@ -126,4 +128,13 @@ When "Location" header is sent with status code 302 that means it is redirect pa
 means the path of resource is here which he can use.
 So here we changed create() of store.js to return the newly created user object after saving it.
 After that the handler of this file will send that returned created user object in response body instead of sending all users. Also we added "Location" header in response with path.
+
+#4..... Header "Cache-Control"
+This header is used to control the caching behavior, usually it contains parameters/directives like "no-cache", "no-store", "max-age" ...separated by comma.
+This header can be sent by both server and client as well.
+ex: "Cache-Control: max-age=60"  ==> if this is sent by server then it means this response can be cached by client for 60s, lets say it was a browser and if withing 60s again user made same request then browser will
+not make new request to server, instead it will use that cached response. Use case: logo.png of website, mostly it do not change frequently so servers use to send "max-age" parameter.
+ex: "Cache-Control: no-store"  ==> if this is sent by server then it means this response should not be cached by client at all. Use case: login page, password reset page, payment page, etc.
+ex: "Cache-Control: no-cache"  ==> if this is sent by server then it means this response can be cached by client but before using that cached response, client should check with server whether it is still valid or not.
+There are many more parameters/directives of this header, we can explore them as per need..
 */
