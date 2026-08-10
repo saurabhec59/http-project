@@ -15,8 +15,8 @@ const responseBuilder = {
         res.end();
     },
 
-    sendJsonResponse: function(res, json){
-        res.statusCode = STATUS_CODES.OK;
+    sendJsonResponse: function(req, res, statusCode, json){
+        res.statusCode = statusCode;
         res.setHeader("Content-Type", "application/json");
         res.write(JSON.stringify(json));
         res.end();

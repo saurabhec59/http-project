@@ -6,7 +6,7 @@ import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, request
 function getAllUsersHandler(req, res){
     var users = getAll();
     res.setHeader("Cache-Control", "max-age=10"); // #4.....
-    responseBuilder.sendJsonResponse(res, users);
+    responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, users);
 }
 
 function createUserHandler(req, res){
@@ -14,12 +14,8 @@ function createUserHandler(req, res){
     var user = req.body;
     var newUser = create(user); // #3..... now after creating the new user, create() method will return the newly created user object
     // to varify data was saved
-    res.statusCode = STATUS_CODES.CREATED; // 201 means resource is created successfully
-    res.setHeader("Content-Type", "application/json"); // #1....
     res.setHeader("Location", "/users/" + newUser.id);
-    res.write(JSON.stringify(newUser));
-    res.end();
-
+    responseBuilder.sendJsonResponse(req, res, STATUS_CODES.CREATED, newUser); // 201-> created successfully
 }
 
 function getUserByIdHandler(req, res){
@@ -29,10 +25,7 @@ function getUserByIdHandler(req, res){
         responseBuilder.send404Response(res, message);
         return;
     }
-    res.statusCode = STATUS_CODES.OK;
-    res.setHeader("Content-Type", "application/json");
-    res.write(JSON.stringify(user));
-    res.end();
+    responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, user);
 }
 
 function partialUpdateByIdHandler(req, res){
@@ -54,10 +47,7 @@ function partialUpdateByIdHandler(req, res){
     update(parseInt(req.params.id), user);
     // OPTIONAL sending all user data after update
     var allUser = getAll();
-    res.statusCode = STATUS_CODES.OK;
-    res.setHeader("Content-Type", "application/json");
-    res.write(JSON.stringify(allUser));
-    res.end();
+    responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, allUser);
 }
 
 function fullUpdateByIdHandler(req, res){
@@ -82,11 +72,7 @@ function fullUpdateByIdHandler(req, res){
     update(parseInt(req.params.id), user);
     // OPTIONAL sending all user data after update
     var allUser = getAll();
-    res.statusCode = STATUS_CODES.OK;
-    res.setHeader("Content-Type", "application/json");
-    res.write(JSON.stringify(allUser));
-    res.end();
-
+    responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, allUser);
 }
 
 function deleteUserHandler(req, res){
@@ -102,11 +88,8 @@ function deleteUserHandler(req, res){
 
     // OPTIONAL sending all users list to verify user deleted
     var allUser = getAll();
-    res.statusCode = STATUS_CODES.OK; // #2...
-    res.setHeader("Content-Type", "application/json");
     res.setHeader("Cache-Control", "no-cache"); // we are allowing client to cache this response but he must validate with server before using that cached response because after each deletion the updated list should be sent to client.
-    res.write(JSON.stringify(allUser));
-    res.end();
+    responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, allUser);
 }
 
 export { getAllUsersHandler, createUserHandler, getUserByIdHandler, partialUpdateByIdHandler, fullUpdateByIdHandler, deleteUserHandler };

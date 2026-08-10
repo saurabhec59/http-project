@@ -5,7 +5,7 @@ import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, request
 
 function getAllProductsHandler(req, res){
     var products = getAllProducts();
-    responseBuilder.sendJsonResponse(res, products);
+    responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, products);
 }
 
 function getProductByIdHandler(req, res){
@@ -17,17 +17,14 @@ function getProductByIdHandler(req, res){
         responseBuilder.send404Response(res, message);
         return;
     }
-    responseBuilder.sendJsonResponse(res, product);
+    responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, product);
 }
 
 function createProductHandler(req, res){
     var data = req.body;
     var product = createProduct(data);
-    res.statusCode = STATUS_CODES.CREATED;
-    res.setHeader("Content-Type", "application/json");
     res.setHeader("Location", "/products/" + product.id);// following REST best practices, returning the location and created product in response.
-    res.write(JSON.stringify(product));
-    res.end();
+    responseBuilder.sendJsonResponse(req, res, STATUS_CODES.CREATED, product);
 }
 
 function updateProductHandler(req, res){
@@ -42,10 +39,7 @@ function updateProductHandler(req, res){
     updateProduct(parseInt(req.params.id), req.body);
     // OPTIONAL sending all products list to verify product updated
     var products = getAllProducts();
-    res.statusCode = STATUS_CODES.OK;
-    res.setHeader("Content-Type", "application/json");
-    res.write(JSON.stringify(products));
-    res.end();
+    responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, products);
 }
 
 function deleteProductHandler(req, res){
@@ -60,10 +54,8 @@ function deleteProductHandler(req, res){
 
     // OPTIONAL sending all Product list to verify product deleted
     var allProducts = getAllProducts();
-    res.statusCode = STATUS_CODES.OK; // Ideally should be 204 No Content, but for testing purposes we are sending the list of products after deletion
-    res.setHeader("Content-Type", "application/json");
-    res.write(JSON.stringify(allProducts));
-    res.end();
+    // Ideally should be 204 No Content, but for testing purposes we are sending the list of products after deletion
+    responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, allProducts);
 }
 
 export { getAllProductsHandler, getProductByIdHandler, createProductHandler, updateProductHandler, deleteProductHandler };
