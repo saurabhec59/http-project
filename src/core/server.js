@@ -18,6 +18,7 @@ import {getAllProductsHandler, getProductByIdHandler, createProductHandler, upda
 import {parseBody} from '../middleware/body-parser.js';
 import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, requestTimeOut, payloadTooLarge, conflict, unprocessableEntity, internalServerError, unsupportedMediaType} from '../utils/error-responses.js';
 import {setCorsHeaders} from '../middleware/cors.js';
+import {info, warn, error, debug} from '../utils/logger.js';
 
 addRoute("GET", "/", homeHandler);
 addRoute("GET", "/html", htmlHandler);
@@ -41,7 +42,7 @@ addRoute("PUT", "/products/:id", updateProductHandler);
 addRoute("DELETE", "/products/:id", deleteProductHandler);
 
 const server = http.createServer(async function(req, res){
-    console.log("Request received");
+    info("Request Received");
     console.log("url: " + req.url + " method: " + req.method);
     // logging 'req' object #1
     console.log("method: " + req.method);
@@ -105,7 +106,7 @@ const server = http.createServer(async function(req, res){
 
 const port = 3000;
 server.listen(port, function(){
-    console.log("server is listening on port " + port);
+    info("server is listening on port " + port);
 })
 
 /* it is always a good practice to include 'status code' and 'content-type' in each response sent to client. If we don't then by default the status code will be 200 but node.js
