@@ -29,6 +29,7 @@ function getById(id){
 function create(data){
     var user = { id: users.length+1, name: data.name, age: data.age };
     users.push(user);
+    return structuredClone(user);
 }
 
 function update(id, data){
@@ -66,6 +67,7 @@ function createProduct(data){
         name: data.name
     }
     products.push(product);
+    return structuredClone(product);
 }
 
 function updateProduct(id, data){

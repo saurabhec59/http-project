@@ -18,7 +18,7 @@ function jsonHandler(req, res){
         name: "Rahul",
         age: 30
     }
-    responseBuilder.sendJsonResponse(res, json);
+    responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, json);
 }
 
 function xmlHandler(req, res){
@@ -45,7 +45,7 @@ function debugRequestHandler(req, res){
         IPOfServer: req.socket.localAddress
     }
 
-    responseBuilder.sendJsonResponse(res, requestDetails);
+    responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, requestDetails);
 }
 
 function emptyResponseHandler(req, res){
