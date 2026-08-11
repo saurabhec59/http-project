@@ -21,6 +21,7 @@ import {setCorsHeaders} from '../middleware/cors.js';
 import {info, warn, error, debug} from '../utils/logger.js';
 import {requestLogger} from '../middleware/request-logger.js';
 import {serveStaticFile} from '../middleware/static.js';
+import {STATUS_CODES} from '../utils/status-codes.js';
 
 addRoute("GET", "/", homeHandler);
 addRoute("GET", "/html", htmlHandler);
@@ -57,19 +58,19 @@ const server = http.createServer(async function(req, res){
             req.body = await parseBody(req);
         }catch(e){
             // parseBody() attaches a statusCode to each error so we know exactly which HTTP response to send.
-            if(e.statusCode === 408){
+            if(e.statusCode === STATUS_CODES.REQUEST_TIMEOUT){//408
                 var message = requestTimeOut(e.message);
-                responseBuilder.send408Response(res, message);
-            } else if(e.statusCode === 413){
+                responseBuilder.sendErrorResponse(res, STATUS_CODES.REQUEST_TIMEOUT, message);
+            } else if(e.statusCode === STATUS_CODES.PAYLOAD_TOO_LARGE){ //413
                 var message = payloadTooLarge(e.message);
-                responseBuilder.send413Response(res, message);
-            } else if(e.statusCode === 415){
+                responseBuilder.sendErrorResponse(res, STATUS_CODES.PAYLOAD_TOO_LARGE, message);
+            } else if(e.statusCode === STATUS_CODES.UNSUPPORTED_MEDIA_TYPE){ //415
                 var message = unsupportedMediaType(e.message);
-                responseBuilder.send415Response(res, message);
+                responseBuilder.sendErrorResponse(res, STATUS_CODES.UNSUPPORTED_MEDIA_TYPE, message);
             }
             else {
                 var message = badRequest(e.message);
-                responseBuilder.send400Response(res, message);
+                responseBuilder.sendErrorResponse(res, STATUS_CODES.BAD_REQUEST, message);//400
             }
             return;
         }
@@ -190,4 +191,6 @@ For that we have 2 options:
 2-> inside the server.js -> inside the createServer() method -> before doing any operation with 'req' or 'res' , call our body parser if methods are PUT, POST and PATCH
 and create a property as "req.body" which will contain the parsed payload result. Now each handler receiving this request object have property "req.body" which they can directly use.
 And this approach servers the purpose of 'middleware' more meaningfully.
+
+TO-DO: update all reference of error response builders like send415Response, send404Response, send408Response... with sendErrorResponse as done in this file.
 */

@@ -107,6 +107,13 @@ const responseBuilder = {
         res.write(JSON.stringify(message));
         res.end();
     }
+
+    sendErrorResponse: function(res, statusCode, message){
+        res.statusCode = statusCode;
+        res.setHeader("Content-Type", "application/json");
+        res.write(JSON.stringify(message));
+        res.end();
+    }
 }
 
 export default responseBuilder;
