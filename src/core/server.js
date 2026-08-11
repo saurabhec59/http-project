@@ -20,6 +20,7 @@ import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, request
 import {setCorsHeaders} from '../middleware/cors.js';
 import {info, warn, error, debug} from '../utils/logger.js';
 import {requestLogger} from '../middleware/request-logger.js';
+import {serveStaticFile} from '../middleware/static.js';
 
 addRoute("GET", "/", homeHandler);
 addRoute("GET", "/html", htmlHandler);
@@ -44,33 +45,9 @@ addRoute("DELETE", "/products/:id", deleteProductHandler);
 
 const server = http.createServer(async function(req, res){
     requestLogger(req, res);
-    console.log("url: " + req.url + " method: " + req.method);
-    // logging 'req' object #1
-    console.log("method: " + req.method);
-    console.log("url: " + req.url);
-    console.log("header: " + req.headers);
-    console.log("http version: " + req.httpVersion);
-    // logging a particular header:
-    console.log("host from request header: " + req.headers.host);
-    console.log("agent type from request header: " + req.headers["user-agent"]); // node converts headers into objects and also converts keys of req headers into lower case, that's why we did "user-agent" instead of "User-Agent"
-    console.log("accept header from request header:" + req.headers.accept);
-    // logging socket object #2
-    console.log("socket: " + req.socket);
-    console.log("IP of client: " + req.socket.remoteAddress);
-    console.log("IP of host/server: " + req.socket.localAddress);
-    console.log("port of host/server: " + req.socket.localPort);
+    if(await serveStaticFile(req, res)){ return; }
 
-    //  #3... req methods: read first the comment section #3
-    // "data" event: when a request contains body/payload then 'req' object emits "data" event and here in our below implementation we are registering
-    // a callback function for that event.
-    // for 1 http request this callback method can be called multiple times as well because most of the times entire payload do not comes together at once
-    // to process, node passes chunks of that data like if payload is { "name": "Rahul", age: 30 } then may be for this payload node can send
-    // { "nam     ==> only this much data will be passed to callback argument(chunk) and method will be called. Then again
-    // e": "Rahul",  ===> only this much data will be passed to callback.....and method will be called....
-    // so for a single request containing body, this callback can be called multiple times. NOTE: here 'chunk' is not of type String, it's Buffer (we will see later)
-
-
-    // there are others events as well like "close" ==> which is used when connection is closed, browser closed suddenly, TCP connection terminated. Few more events are "error", "destroy"....
+    directConsoleLogger(req);//removed console.log statements from here.
 
     setCorsHeaders(req, res); // before processing the request we are checking if client has sent Origin header then attach the response header to 'res'
     // #6......Using body-parser middleware
@@ -110,6 +87,36 @@ server.listen(port, function(){
     info("server is listening on port " + port);
 })
 
+// this method is created to just clean the code inside createServer() callback and keeping previous learning codes. It is not adding something new.
+function directConsoleLogger(req){
+    // logging 'req' object #1
+    console.log("method: " + req.method);
+    console.log("url: " + req.url);
+    console.log("header: " + req.headers);
+    console.log("http version: " + req.httpVersion);
+    // logging a particular header:
+    console.log("host from request header: " + req.headers.host);
+    console.log("agent type from request header: " + req.headers["user-agent"]); // node converts headers into objects and also converts keys of req headers into lower case, that's why we did "user-agent" instead of "User-Agent"
+    console.log("accept header from request header:" + req.headers.accept);
+    // logging socket object #2
+    console.log("socket: " + req.socket);
+    console.log("IP of client: " + req.socket.remoteAddress);
+    console.log("IP of host/server: " + req.socket.localAddress);
+    console.log("port of host/server: " + req.socket.localPort);
+
+    //  #3... req methods: read first the comment section #3
+    // "data" event: when a request contains body/payload then 'req' object emits "data" event and here in our below implementation we are registering
+    // a callback function for that event.
+    // for 1 http request this callback method can be called multiple times as well because most of the times entire payload do not comes together at once
+    // to process, node passes chunks of that data like if payload is { "name": "Rahul", age: 30 } then may be for this payload node can send
+    // { "nam     ==> only this much data will be passed to callback argument(chunk) and method will be called. Then again
+    // e": "Rahul",  ===> only this much data will be passed to callback.....and method will be called....
+    // so for a single request containing body, this callback can be called multiple times. NOTE: here 'chunk' is not of type String, it's Buffer (we will see later)
+
+
+    // there are others events as well like "close" ==> which is used when connection is closed, browser closed suddenly, TCP connection terminated. Few more events are "error", "destroy"....
+
+}
 /* it is always a good practice to include 'status code' and 'content-type' in each response sent to client. If we don't then by default the status code will be 200 but node.js
 will not set content-type in response header.
 usually there are 2 common ways to to this:
