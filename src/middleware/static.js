@@ -14,16 +14,14 @@ async function serveStaticFile(req, res){
         var fileStats = await fs.stat(filePath); //#4...
         if(fileStats.isDirectory()){
             filePath = path.join(filePath,"index.html");// so if req was '/' return file '/index.html' and if req was '/users/' return file '/users/index.html' and so on. Just append index.html to pathname if it is a directory.
+            fileStats = await fs.stat(filePath); // since filePath has changed so we need to get the stats again to use some properties like size, mtime, ctime..later.
         }
         var fileContent = await fs.readFile(filePath);
         var extension = path.extname(filePath); // #b..
         var mimeType = MIME_TYPES[extension] || "application/octet-stream"; // if extension is not found in MIME_TYPES object then we will set default content-type as "application/octet-stream" which is used for binary data.
 
         // building the response
-        res.setHeader("Content-Type", mimeType);
-        res.statusCode = STATUS_CODES.OK;
-        res.write(fileContent);
-        res.end();
+        responseBuilder.sendStaticFileResponse(req, res, fileContent, mimeType, fileStats);
         return true;
     }catch(e){
         if(e.code === "ENOENT"){ // ENOENT is the error code for file not found.
