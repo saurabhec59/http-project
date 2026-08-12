@@ -20,8 +20,11 @@ async function serveStaticFile(req, res){
         res.write(fileContent);
         res.end();
         return true;
-    }catch{
-        return false;
+    }catch(e){
+        if(e.code === "ENOENT"){ // ENOENT is the error code for file not found.
+            return false; // returning false so that router will run and if matchRoute() will not find any route then it will send 404
+        }
+        throw e; // if it is not 404 then there may be some other like permission denied, disk full etc.. which will fall into 500 internal SE and server.js will respond, not this method should.
     }
 }
 

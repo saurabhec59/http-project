@@ -106,7 +106,7 @@ const responseBuilder = {
         res.setHeader("Content-Type", "application/json");
         res.write(JSON.stringify(message));
         res.end();
-    }
+    },
 
     sendErrorResponse: function(res, statusCode, message){
         res.statusCode = statusCode;
