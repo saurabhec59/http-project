@@ -20,6 +20,8 @@ import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, request
 import {setCorsHeaders} from '../middleware/cors.js';
 import {info, warn, error, debug} from '../utils/logger.js';
 import {requestLogger} from '../middleware/request-logger.js';
+import {serveStaticFile} from '../middleware/static.js';
+import STATUS_CODES from '../utils/status-codes.js';
 
 addRoute("GET", "/", homeHandler);
 addRoute("GET", "/html", htmlHandler);
@@ -44,7 +46,56 @@ addRoute("DELETE", "/products/:id", deleteProductHandler);
 
 const server = http.createServer(async function(req, res){
     requestLogger(req, res);
-    console.log("url: " + req.url + " method: " + req.method);
+    try{
+        if(await serveStaticFile(req, res)){ return; }; // if static server returned true means file found and send, if false means continue to matchRoute(), if error means return 500
+    }catch(e){
+        var message = internalServerError("Internal Server Error");// #7. why not internalServerError(e.message)?
+        responseBuilder.sendErrorResponse(res, STATUS_CODES.INTERNAL_SERVER_ERROR, message);
+        return;
+    }
+
+    directConsoleLogger(req);//removed console.log statements from here.
+
+    setCorsHeaders(req, res); // before processing the request we are checking if client has sent Origin header then attach the response header to 'res'
+    // #6......Using body-parser middleware
+    var method = req.method;
+    if(method === "POST" || method === "PUT" || method === "PATCH"){
+        try{
+            req.body = await parseBody(req);
+        }catch(e){
+            // parseBody() attaches a statusCode to each error so we know exactly which HTTP response to send.
+            if(e.statusCode === STATUS_CODES.REQUEST_TIMEOUT){//408
+                var message = requestTimeOut(e.message);
+                responseBuilder.sendErrorResponse(res, STATUS_CODES.REQUEST_TIMEOUT, message);
+            } else if(e.statusCode === STATUS_CODES.PAYLOAD_TOO_LARGE){ //413
+                var message = payloadTooLarge(e.message);
+                responseBuilder.sendErrorResponse(res, STATUS_CODES.PAYLOAD_TOO_LARGE, message);
+            } else if(e.statusCode === STATUS_CODES.UNSUPPORTED_MEDIA_TYPE){ //415
+                var message = unsupportedMediaType(e.message);
+                responseBuilder.sendErrorResponse(res, STATUS_CODES.UNSUPPORTED_MEDIA_TYPE, message);
+            }
+            else {
+                var message = badRequest(e.message);
+                responseBuilder.sendErrorResponse(res, STATUS_CODES.BAD_REQUEST, message);//400
+            }
+            return;
+        }
+    }
+
+    var routeResult = matchRoute(req.method, req.url); // #5.....
+    req.params = routeResult.params;
+    routeResult.handler(req, res);
+
+})
+
+
+const port = 3000;
+server.listen(port, function(){
+    info("server is listening on port " + port);
+})
+
+// this method is created to just clean the code inside createServer() callback and keeping previous learning codes. It is not adding something new.
+function directConsoleLogger(req){
     // logging 'req' object #1
     console.log("method: " + req.method);
     console.log("url: " + req.url);
@@ -72,44 +123,7 @@ const server = http.createServer(async function(req, res){
 
     // there are others events as well like "close" ==> which is used when connection is closed, browser closed suddenly, TCP connection terminated. Few more events are "error", "destroy"....
 
-    setCorsHeaders(req, res); // before processing the request we are checking if client has sent Origin header then attach the response header to 'res'
-    // #6......Using body-parser middleware
-    var method = req.method;
-    if(method === "POST" || method === "PUT" || method === "PATCH"){
-        try{
-            req.body = await parseBody(req);
-        }catch(e){
-            // parseBody() attaches a statusCode to each error so we know exactly which HTTP response to send.
-            if(e.statusCode === 408){
-                var message = requestTimeOut(e.message);
-                responseBuilder.send408Response(res, message);
-            } else if(e.statusCode === 413){
-                var message = payloadTooLarge(e.message);
-                responseBuilder.send413Response(res, message);
-            } else if(e.statusCode === 415){
-                var message = unsupportedMediaType(e.message);
-                responseBuilder.send415Response(res, message);
-            }
-            else {
-                var message = badRequest(e.message);
-                responseBuilder.send400Response(res, message);
-            }
-            return;
-        }
-    }
-
-    var routeResult = matchRoute(req.method, req.url); // #5.....
-    req.params = routeResult.params;
-    routeResult.handler(req, res);
-
-})
-
-
-const port = 3000;
-server.listen(port, function(){
-    info("server is listening on port " + port);
-})
-
+}
 /* it is always a good practice to include 'status code' and 'content-type' in each response sent to client. If we don't then by default the status code will be 200 but node.js
 will not set content-type in response header.
 usually there are 2 common ways to to this:
@@ -183,4 +197,11 @@ For that we have 2 options:
 2-> inside the server.js -> inside the createServer() method -> before doing any operation with 'req' or 'res' , call our body parser if methods are PUT, POST and PATCH
 and create a property as "req.body" which will contain the parsed payload result. Now each handler receiving this request object have property "req.body" which they can directly use.
 And this approach servers the purpose of 'middleware' more meaningfully.
+
+#7...
+Usually servers should not expose e.message directly to client if it's not your custom message like new Error("the error") because it may reveal sensitive info like paths etc to client,
+that's we sending custom message. Also all other error objects which are build in this file like unsupportedMediaType(e.message); or payloadTooLarge(e.message); If you notice these Errors in
+body-parser.js then these are custom errors like new Error("custom message"), so here 'e.message' is our written message.
+
+TO-DO: update all reference of error response builders like send415Response, send404Response, send408Response... with sendErrorResponse as done in this file.
 */

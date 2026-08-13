@@ -106,6 +106,45 @@ const responseBuilder = {
         res.setHeader("Content-Type", "application/json");
         res.write(JSON.stringify(message));
         res.end();
+    },
+
+    sendErrorResponse: function(res, statusCode, message){
+        res.statusCode = statusCode;
+        res.setHeader("Content-Type", "application/json");
+        res.write(JSON.stringify(message));
+        res.end();
+    },
+
+    sendStaticFileResponse: function(req, res, fileContent, mimeType, fileStats){ // #6...
+        const etag = generateETag(fileContent);
+
+        // ETag have more precision than .mtime also if both are present then ETag takes priority, that's why checking it first
+        if(req.headers["if-none-match"] && req.headers["if-none-match"] === etag){
+            res.statusCode = STATUS_CODES.NOT_MODIFIED;// 304 means response body is not modified since last time, so client can use it's cached response.
+            res.setHeader("ETag", etag); // sending latest etag
+            res.setHeader("last-modified", fileStats.mtime.toUTCString());// sending last modified time as well.
+            res.end();
+            return;
+        }
+        else if(req.headers["if-modified-since"]){
+            //this request header contains time as string but we have to compare it against '.mime' which is a Date object, so converting client time into Date object as well.
+            // Also I am aware that http request header "If-Modified-Since" have second precision means chances are .mtime contains time till milliseconds as well but http header will always contain till seconds, but not handelling that edge case here intentionally
+            const clientTime = new Date(req.headers["if-modified-since"]);
+            if(fileStats.mtime.getTime() === clientTime.getTime()){
+                res.statusCode = STATUS_CODES.NOT_MODIFIED;
+                res.setHeader("last-modified", fileStats.mtime.toUTCString());
+                res.setHeader("ETag", etag)
+                res.end();
+                return;
+            }
+        }
+
+        res.statusCode = STATUS_CODES.OK;
+        res.setHeader("ETag", etag);
+        res.setHeader("last-modified", fileStats.mtime.toUTCString());
+        res.setHeader("content-type", mimeType);
+        res.write(fileContent);
+        res.end();
     }
 }
 
@@ -139,4 +178,12 @@ Now coming to our implementation,
 It is better to calculate ETag value after building the entire response body in it's final form to maintain consistency and accuracy. That's why we are doing after JSON.stringify() of response body.
 Most useful combination [ ETag + Cache-Control ] header.
 "Cache-Control" is not advised to be used as generalized header for all responses like "ETag" because cache-controls depends upon the resources and their nature so better individual handlers take that decision.
+
+#6.... "if-modified-since" request header:
+Remember previously in our sendJsonResponse() we were calculating ETag and sending it in response header so that client can use it to validate if in case he wants to use cached response.
+So there after seeing ETag in response client may cache the response and send "if-none-match" request header with stored ETag to validate with server and in our sendJsonResponse() we are doing it already.
+But ETag is not the only way to validate cached response, we can use Last modified time of resource as well. So here while sending static file response we are sending one more header "last-modified" extracted from fileStats.mtime property.
+Now after seeing this header just like ETag, client may cache the response and send "if-modified-since" request header as well to validate with server.
+Here in the static file response we are sending both ETag and last-modified header so that client can use any one of them or even both to validate with server if he has cached response.
+But Remember "ETag", "if-none-match" or "last-modified", "if-modified-since" are just validation headers, they do not control caching behavior. Caching behavior is controlled by "Cache-Control" header and client preferences.
 */

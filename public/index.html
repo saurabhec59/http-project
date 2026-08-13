@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HTTP Project</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <h1>HTTP Learning Project</h1>
+
+    <!-- USERS SECTION -->
+    <section>
+        <h2>Users</h2>
+
+        <!-- Create user form -->
+        <form id="create-user-form">
+            <input type="text"   id="name" placeholder="Name"  required>
+            <input type="number" id="age"  placeholder="Age"   required>
+            <input type="text" id="status" placeholder="Status" required>
+            <input type="text" id="city" placeholder="City" required>
+            <button type="submit">Add User</button>
+        </form>
+        <p id="form-message"></p>
+
+        <!-- Users list -->
+        <table id="users-table">
+            <thead>
+                <tr><th>ID</th><th>Name</th><th>Age</th><th>Status</th><th>City</th></tr>
+            </thead>
+            <tbody id="users-body">
+                <tr><td colspan="3">Loading...</td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <hr>
+
+    <!-- PRODUCTS SECTION -->
+    <section>
+        <h2>Products</h2>
+        <table id="products-table">
+            <thead>
+                <tr><th>ID</th><th>Name</th><th>Category</th><th>Price</th></tr>
+            </thead>
+            <tbody id="products-body">
+                <tr><td colspan="5">Loading...</td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
