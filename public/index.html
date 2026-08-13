@@ -17,6 +17,8 @@
         <form id="create-user-form">
             <input type="text"   id="name" placeholder="Name"  required>
             <input type="number" id="age"  placeholder="Age"   required>
+            <input type="text" id="status" placeholder="Status" required>
+            <input type="text" id="city" placeholder="City" required>
             <button type="submit">Add User</button>
         </form>
         <p id="form-message"></p>
@@ -24,7 +26,7 @@
         <!-- Users list -->
         <table id="users-table">
             <thead>
-                <tr><th>ID</th><th>Name</th><th>Age</th></tr>
+                <tr><th>ID</th><th>Name</th><th>Age</th><th>Status</th><th>City</th></tr>
             </thead>
             <tbody id="users-body">
                 <tr><td colspan="3">Loading...</td></tr>
@@ -39,10 +41,10 @@
         <h2>Products</h2>
         <table id="products-table">
             <thead>
-                <tr><th>ID</th><th>Name</th></tr>
+                <tr><th>ID</th><th>Name</th><th>Category</th><th>Price</th></tr>
             </thead>
             <tbody id="products-body">
-                <tr><td colspan="2">Loading...</td></tr>
+                <tr><td colspan="5">Loading...</td></tr>
             </tbody>
         </table>
     </section>

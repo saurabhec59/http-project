@@ -9,7 +9,7 @@ function loadUsers() {
             tbody.innerHTML = ""; // clear existing rows
 
             users.forEach(function(user) {
-                var row = "<tr><td>" + user.id + "</td><td>" + user.name + "</td><td>" + user.age + "</td></tr>";
+                var row = "<tr><td>" + user.id + "</td><td>" + user.name + "</td><td>" + user.age + "</td><td>" + user.status + "</td><td>" + user.city + "</td></tr>";
                 tbody.innerHTML += row;
             });
         })
@@ -29,7 +29,7 @@ function loadProducts() {
             tbody.innerHTML = "";
 
             products.forEach(function(product) {
-                var row = "<tr><td>" + product.id + "</td><td>" + product.name + "</td></tr>";
+                var row = "<tr><td>" + product.id + "</td><td>" + product.name + "</td><td>" + product.category + "</td><td>" + product.price + "</td></tr>";
                 tbody.innerHTML += row;
             });
         })
@@ -44,13 +44,15 @@ document.getElementById("create-user-form").addEventListener("submit", function(
 
     var name = document.getElementById("name").value;
     var age  = parseInt(document.getElementById("age").value);
+    var status = document.getElementById("status").value;
+    var city = document.getElementById("city").value;
 
     fetch("/users", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({ name: name, age: age })
+        body: JSON.stringify({ name: name, age: age, status: status, city: city })
     })
     .then(function(response) {
         return response.json();
