@@ -22,6 +22,7 @@ import {info, warn, error, debug} from '../utils/logger.js';
 import {requestLogger} from '../middleware/request-logger.js';
 import {serveStaticFile} from '../middleware/static.js';
 import STATUS_CODES from '../utils/status-codes.js';
+import {parseQueryString} from '../utils/query-parser.js';
 
 addRoute("GET", "/", homeHandler);
 addRoute("GET", "/html", htmlHandler);
@@ -82,8 +83,11 @@ const server = http.createServer(async function(req, res){
         }
     }
 
-    var routeResult = matchRoute(req.method, req.url); // #5.....
+    var parsedUrl = new URL(req.url, "http://localhost:3000");
+    var routeResult = matchRoute(req.method, parsedUrl.pathname); // #5..... sending only pathname to matchRoute() because query string is not part of route matching.
     req.params = routeResult.params;
+    var parsedQuery = parseQueryString(parsedUrl.searchParams); // this will return an object containing key-value pairs of query string params.
+    req.query = parsedQuery; // attaching this to req object so that handlers can use it.
     routeResult.handler(req, res);
 
 })

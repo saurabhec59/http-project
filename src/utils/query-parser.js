@@ -1,7 +1,7 @@
 
 const allowedFilterFields = ["name", "age"]; // this wil prevent any unknown query params like ?password=420 to be stored in filtering object.
 
-function parseQueryString(url){
+function parseQueryString(searchParams){ // this method is receiving '.searchParams' object from new URL(req.url, "http://localhost:3000").searchParams
 
     const parsedQueryString = {
         pagination: {
@@ -19,9 +19,7 @@ function parseQueryString(url){
     }
     // read the reason of why filtering is an object and fields is an array.
 
-    var parsedUrl = new URL(url, "http://localhost:3000");
-    var params = parsedUrl.searchParams;
-    for(const [key, value] of params){
+    for(const [key, value] of searchParams){
         if(key === "page"){
             if(pageValidation(value)){
                 parsedQueryString.pagination.page = Number(value);
@@ -65,6 +63,32 @@ function parseQueryString(url){
 
     return parsedQueryString;
 }
+
+// TEMPORARY VALIDATION FUNCTIONS, Intentionally kept like that, we can implement proper validation later on.
+function pageValidation(value){
+    return true;
+}
+
+function limitValidation(value){
+    return true;
+}
+
+function sortValidation(value){
+    return true;
+}
+
+function orderValidation(value){
+    return true;
+}
+
+function fieldsValidation(value){
+    return true;
+}
+
+function searchValidation(value){
+    return true;
+}
+
 export { parseQueryString };
 
 

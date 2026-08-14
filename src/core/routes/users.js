@@ -7,8 +7,7 @@ import {parseQueryString} from '../../utils/query-parser.js';
 
 function getAllUsersHandler(req, res){
     var users = getAll();
-    var parsedQueryString = parseQueryString(req.url);
-    var result = applyQueryParams(users, parsedQueryString);
+    var result = applyQueryParams(users, req.query); // server.js already assigned parsed query params object to 'req' as 'req.query'.
     res.setHeader("Cache-Control", "max-age=10"); // #4.....
     responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, result);
 }

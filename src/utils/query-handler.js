@@ -11,7 +11,7 @@ function applyQueryParams(data, parsedQueryString){
         page: parsedQueryString.pagination.page,
         limit: parsedQueryString.pagination.limit,
         total: totalRecord,
-        totalPage: Math.ceil(totalRecord / parsedQueryString.pagination.limit)
+        totalPages: Math.ceil(totalRecord / parsedQueryString.pagination.limit)
     }
 }
 
