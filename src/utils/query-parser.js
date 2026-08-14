@@ -45,7 +45,7 @@ function parseQueryString(url){
         else if(key === "fields"){// supporting comma separated format --> ?fields=id,name
             if(fieldsValidation(value)){
                 var parsedFields = value.split(",");
-                for(var i = 0, i<parsedFields.length; i++){
+                for(var i = 0; i<parsedFields.length; i++){
                     parsedQueryString.fields.push(parsedFields[i]); // without parsing fields array will store ["id,name,price"] and after parsing it will ["id", "name", "price"] which we wants
                 }
             }
@@ -65,7 +65,7 @@ function parseQueryString(url){
 
     return parsedQueryString;
 }
-
+export { parseQueryString };
 
 
 /*

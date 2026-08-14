@@ -2,11 +2,15 @@ import { getAll, create, getById, update, deleteById } from '../../data/store.js
 import responseBuilder from '../response-builder.js';
 import STATUS_CODES from '../../utils/status-codes.js';
 import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, requestTimeOut, payloadTooLarge, conflict, unprocessableEntity, internalServerError} from '../../utils/error-responses.js';
+import {applyQueryParams} from '../../utils/query-handler.js';
+import {parseQueryString} from '../../utils/query-parser.js';
 
 function getAllUsersHandler(req, res){
     var users = getAll();
+    var parsedQueryString = parseQueryString(req.url);
+    var result = applyQueryParams(users, parsedQueryString);
     res.setHeader("Cache-Control", "max-age=10"); // #4.....
-    responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, users);
+    responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, result);
 }
 
 function createUserHandler(req, res){

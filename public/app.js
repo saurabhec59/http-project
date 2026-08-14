@@ -8,7 +8,7 @@ function loadUsers() {
             var tbody = document.getElementById("users-body");
             tbody.innerHTML = ""; // clear existing rows
 
-            users.forEach(function(user) {
+            users.data.forEach(function(user) { // because now the response is in format { data: [ ... ] } but previously it was just [ ... ]
                 var row = "<tr><td>" + user.id + "</td><td>" + user.name + "</td><td>" + user.age + "</td><td>" + user.status + "</td><td>" + user.city + "</td></tr>";
                 tbody.innerHTML += row;
             });
