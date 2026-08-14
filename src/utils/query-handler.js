@@ -1,5 +1,6 @@
 // This Query pipeline wil expose only this function to outside handlers
 function applyQueryParams(data, parsedQueryString){
+    data = applySearch(data, parsedQueryString);
     data = applyFiltering(data, parsedQueryString);// do filtering first because after filtering we will get only those records which we wants to sort, paginate and select fields from.
     data = applySorting(data, parsedQueryString);
     const totalRecord = data.length;
@@ -67,6 +68,31 @@ function applyFields(data, parsedQueryString) {
         }
 
         return newItem;
+    });
+}
+
+function applySearch(data, parsedQueryString) {
+    var allowedSearchFields = ["name", "city", "category", "status"]; // Define the fields that are allowed for searching
+    var search = parsedQueryString.search;
+
+    if (search === null) {
+        return data;
+    }
+
+    search = search.toLowerCase();
+
+    return data.filter(function (item) {
+
+        for (const field of allowedSearchFields) {
+            if (
+                item[field] !== undefined &&
+                String(item[field]).toLowerCase().includes(search)
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     });
 }
 

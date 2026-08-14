@@ -1,5 +1,5 @@
 
-const allowedFilterFields = ["name", "age"]; // this wil prevent any unknown query params like ?password=420 to be stored in filtering object.
+const allowedFilterFields = ["name", "age", "category"]; // this wil prevent any unknown query params like ?password=420 to be stored in filtering object.
 
 function parseQueryString(searchParams){ // this method is receiving '.searchParams' object from new URL(req.url, "http://localhost:3000").searchParams
 

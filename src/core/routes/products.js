@@ -2,10 +2,12 @@ import { getAllProducts, getProductById, createProduct, updateProduct, deletePro
 import responseBuilder from '../response-builder.js';
 import STATUS_CODES from '../../utils/status-codes.js';
 import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, requestTimeOut, payloadTooLarge, conflict, unprocessableEntity, internalServerError} from '../../utils/error-responses.js';
+import {applyQueryParams} from '../../utils/query-handler.js';
 
 function getAllProductsHandler(req, res){
     var products = getAllProducts();
-    responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, products);
+    var result = applyQueryParams(products, req.query); // server.js already assigned parsed query params object to 'req' as 'req.query'.
+    responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, result);
 }
 
 function getProductByIdHandler(req, res){
