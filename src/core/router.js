@@ -184,4 +184,13 @@ when a matching route pattern is found.
 now the problem was our matchRoute() is able to find the correct handler for parameterized route but it was not able to return the value of that parameter.
 Either let handler extract the value of parameter from req.url or let matchRoute() return the value of parameter along with handler. I choose 2nd approach because it will keep the handler simple and clean.
 Also now our matchRoute() is extracting params and returning an object containing handler and params when params are present so that server.js can pass those params to handlers as well.
+
+Route pattern: describes what kind of url structure the application accepts. like /users/:userId/orders/:orderId  ===> see here multiple dynamic parameters are present.
+Request path/url: actual requested url like /users/25/orders/100  ===> see here actual values are present for those dynamic parameters.
+":"  ====> this is used to define a dynamic parameter in route pattern.
+like a registered route is -> /users/:id means it could match any real url like /users/1 or /users/25 etc.
+"?"  ====> this is used to define an optional parameter in route pattern.
+like a registered route is -> /users/:id? means it could match any real url like /users/1 or /users/25 or even ==>   /users/  <== (here id is optional)
+"*"  ====> this is used to define a wildcard parameter in route pattern.
+like a registered route is -> /users/files/* means it could match any real url like /users/files or /users/files/notes.txt  or  /users/files/doc.html   or /users/files/public/doc/mars.pdf  etc.  <== (here * can match any value at that position)
 */
