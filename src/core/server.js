@@ -23,6 +23,8 @@ import {requestLogger} from '../middleware/request-logger.js';
 import {serveStaticFile} from '../middleware/static.js';
 import STATUS_CODES from '../utils/status-codes.js';
 import {parseQueryString} from '../utils/query-parser.js';
+import {temperingJwt} from '../auth/token.js';
+import {pool} from '../db/connection.js';
 
 addRoute("GET", "/", homeHandler);
 addRoute("GET", "/html", htmlHandler);
@@ -47,6 +49,8 @@ addRoute("DELETE", "/products/:id", deleteProductHandler);
 
 const server = http.createServer(async function(req, res){
     requestLogger(req, res);
+    const result = await pool.query("SELECT NOW()");
+    console.log(result);
     try{
         if(await serveStaticFile(req, res)){ return; }; // if static server returned true means file found and send, if false means continue to matchRoute(), if error means return 500
     }catch(e){
