@@ -1,8 +1,8 @@
 import {findCustomerByEmail, createCustomer} from '../../repositories/customer-repo.js';
-import {createCredentials} from '../../repositories/customer-cred-repo.js';
-import {hashPassword} from '../../auth/hash.js';
+import {createCredentials, findCredentialsByCustomerId} from '../../repositories/customer-cred-repo.js';
+import {hashPassword, verifyPassword} from '../../auth/hash.js';
 import STATUS_CODES from '../../utils/status-codes.js';
-import {badRequest, internalServerError, conflict} from '../../utils/error-responses.js';
+import {badRequest, internalServerError, conflict, unauthorized} from '../../utils/error-responses.js';
 import responseBuilder from '../response-builder.js';
 import {withTransaction} from '../../db/transaction.js';
 
@@ -63,7 +63,67 @@ function validateCustomerDetailsHandler(req){
     return true;
 }
 
-export {createCustomerHandler};
+async function loginCustomerHandler(req, res){
+    // client will send email + password to login
+    // we have verifyPassword() which takes entered password, & (salt & hashedPassword) of user with that id/email and returns true/false
+    // 1st we will validate the body (email, entered password)  & this is not verifying password
+    if(!validateCustomerLoginDetailsHandler(req)){
+        var message = badRequest("Invalid customer details");
+        responseBuilder.sendErrorResponse(res, STATUS_CODES.BAD_REQUEST, message);
+        return;
+    }
+
+    // check weather the user with email exists or not
+    const existingCustomer = await findCustomerByEmail(req.body.email);
+    if(!existingCustomer){
+        // NOTE: Although we know email is incorrect but good practice is to send same error message for both email and password incorrect to avoid giving any hint to attacker about which one is incorrect.
+        var message = unauthorized("Email or password is incorrect"); // sending 401 instead of 404, READ the classic confusion of 401, 403 and it's names.
+        responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message);
+        return;
+    }
+
+    //now we can call our verifyPassword() but before calling it we need stored (salt & hashedPassword) of that user.
+    // but in db that credential is stored along with 'id' not 'email' but above we have called findCustomerByEmail() which returned that customer.
+    // finding salt & hashed password fot the user
+    const customerCreds = await findCredentialsByCustomerId(existingCustomer.id);
+
+    // checking wether credentials are found and returned by db, because if no credentials will be found with given 'id' then query method is returning null.
+    if(customerCreds === null){
+        var message = unauthorized("Email or password is incorrect");
+        responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message);
+        return;
+    }
+
+    // passing args in same sequence verifyPassword() receives.
+    const result = verifyPassword(req.body.password, customerCreds.password_salt, customerCreds.password_hash);
+
+    if(result){
+        // user entered correct email & password, we will create standard response-builder method for it later and and increment jwt creation as well but for now taking one step at a time.
+        res.statusCode = STATUS_CODES.OK; // sending 200
+        res.end();
+        return;
+    }
+    // if verifyPassword() retuned false
+    var message = unauthorized("Email or password is incorrect");
+    responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message);// client should not know 'email' was incorrect or 'password'. Thats why for both sending same 401 error response.
+    return;
+}
+
+function validateCustomerLoginDetailsHandler(req){
+    if(!(req.body && req.body.email && req.body.password)){
+        return false;
+    }
+    if(typeof req.body.email !== "string" || typeof req.body.password !== "string"){
+        return false;
+    }
+    // checking email and password length, will improve later
+    if(req.body.email.trim().length < 8 || req.body.password.trim().length < 8){
+        return false;
+    }
+    return true;
+}
+
+export {createCustomerHandler, loginCustomerHandler};
 
 /*
 Requirement is:

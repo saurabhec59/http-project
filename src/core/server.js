@@ -26,7 +26,7 @@ import {parseQueryString} from '../utils/query-parser.js';
 import {temperingJwt} from '../auth/token.js';
 import {pool} from '../db/connection.js';
 import {findCustomerByEmail, createCustomer} from '../repositories/customer-repo.js';
-import {createCustomerHandler} from './routes/auth.js';
+import {createCustomerHandler, loginCustomerHandler} from './routes/auth.js';
 
 addRoute("GET", "/", homeHandler);
 addRoute("GET", "/html", htmlHandler);
@@ -49,6 +49,7 @@ addRoute("POST", "/products", createProductHandler);
 addRoute("PUT", "/products/:id", updateProductHandler);
 addRoute("DELETE", "/products/:id", deleteProductHandler);
 addRoute("POST", "/auth/register", createCustomerHandler);
+addRoute("POST", "/auth/login", loginCustomerHandler);
 
 const server = http.createServer(async function(req, res){
     requestLogger(req, res);
