@@ -125,7 +125,7 @@ function directConsoleLogger(req){
 
     //  #3... req methods: read first the comment section #3
     // "data" event: when a request contains body/payload then 'req' object emits "data" event and here in our below implementation we are registering
-    // a callback function for that event.
+    // a callback function for that event.//
     // for 1 http request this callback method can be called multiple times as well because most of the times entire payload do not comes together at once
     // to process, node passes chunks of that data like if payload is { "name": "Rahul", age: 30 } then may be for this payload node can send
     // { "nam     ==> only this much data will be passed to callback argument(chunk) and method will be called. Then again
