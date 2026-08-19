@@ -25,6 +25,8 @@ import STATUS_CODES from '../utils/status-codes.js';
 import {parseQueryString} from '../utils/query-parser.js';
 import {temperingJwt} from '../auth/token.js';
 import {pool} from '../db/connection.js';
+import {findCustomerByEmail, createCustomer} from '../repositories/customer-repo.js';
+import {createCustomerHandler} from './routes/auth.js';
 
 addRoute("GET", "/", homeHandler);
 addRoute("GET", "/html", htmlHandler);
@@ -46,11 +48,13 @@ addRoute("GET", "/products/:id", getProductByIdHandler);
 addRoute("POST", "/products", createProductHandler);
 addRoute("PUT", "/products/:id", updateProductHandler);
 addRoute("DELETE", "/products/:id", deleteProductHandler);
+addRoute("POST", "/auth/register", createCustomerHandler);
 
 const server = http.createServer(async function(req, res){
     requestLogger(req, res);
-    const result = await pool.query("SELECT NOW()");
-    console.log(result);
+    //const result = await createCustomer("dummyDanny@gmail.com", "Danny", 25, "newYork");
+//    console.log(result);
+
     try{
         if(await serveStaticFile(req, res)){ return; }; // if static server returned true means file found and send, if false means continue to matchRoute(), if error means return 500
     }catch(e){

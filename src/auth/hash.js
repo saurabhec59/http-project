@@ -14,6 +14,8 @@ function verifyPassword(enteredPassword, salt, hashedPassword){
     return crypto.timingSafeEqual(hashedEnteredPassword, Buffer.from(hashedPassword, 'hex')); // not using ===
 }
 
+export { hashPassword, verifyPassword };
+
 /*
 
 Lets take about password storing and verifications:
