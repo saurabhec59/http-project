@@ -27,29 +27,30 @@ import {temperingJwt} from '../auth/token.js';
 import {pool} from '../db/connection.js';
 import {findCustomerByEmail, createCustomer} from '../repositories/customer-repo.js';
 import {createCustomerHandler, loginCustomerHandler} from './routes/auth.js';
+import {requireAuth} from '../middleware/auth.js';
 
-addRoute("GET", "/", homeHandler);
-addRoute("GET", "/html", htmlHandler);
-addRoute("GET", "/json", jsonHandler);
-addRoute("GET", "/xml", xmlHandler);
-addRoute("GET", "/debug/request", debugRequestHandler);
-addRoute("GET", "/empty", emptyResponseHandler);
-addRoute("GET", "/redirect", redirectToHomePageHandler);
-addRoute("GET", "/download", downloadTextFileHandler);
-addRoute("GET", "/users", getAllUsersHandler);
-addRoute("POST", "/users", createUserHandler);
-addRoute("GET", "/users/:id", getUserByIdHandler); // #4......
-addRoute("PATCH", "/users/:id", partialUpdateByIdHandler);
-addRoute("PUT", "/users/:id", fullUpdateByIdHandler);
-addRoute("DELETE", "/users/:id", deleteUserHandler);
-addRoute("POST", "/echo", echoParsedBodyHandler);
-addRoute("GET", "/products", getAllProductsHandler);
-addRoute("GET", "/products/:id", getProductByIdHandler);
-addRoute("POST", "/products", createProductHandler);
-addRoute("PUT", "/products/:id", updateProductHandler);
-addRoute("DELETE", "/products/:id", deleteProductHandler);
-addRoute("POST", "/auth/register", createCustomerHandler);
-addRoute("POST", "/auth/login", loginCustomerHandler);
+addRoute("GET", "/", null, homeHandler);
+addRoute("GET", "/html", null, htmlHandler);
+addRoute("GET", "/json", null, jsonHandler);
+addRoute("GET", "/xml", null, xmlHandler);
+addRoute("GET", "/debug/request", null, debugRequestHandler);
+addRoute("GET", "/empty", null, emptyResponseHandler);
+addRoute("GET", "/redirect", null, redirectToHomePageHandler);
+addRoute("GET", "/download", null, downloadTextFileHandler);
+addRoute("GET", "/users", null, getAllUsersHandler);
+addRoute("POST", "/users", null, createUserHandler);
+addRoute("GET", "/users/:id", null, getUserByIdHandler); // #4......
+addRoute("PATCH", "/users/:id", null, partialUpdateByIdHandler);
+addRoute("PUT", "/users/:id", null, fullUpdateByIdHandler);
+addRoute("DELETE", "/users/:id", null, deleteUserHandler);
+addRoute("POST", "/echo", null, echoParsedBodyHandler);
+addRoute("GET", "/products", null, getAllProductsHandler);
+addRoute("GET", "/products/:id", null, getProductByIdHandler);
+addRoute("POST", "/products", null, createProductHandler);
+addRoute("PUT", "/products/:id", null, updateProductHandler);
+addRoute("DELETE", "/products/:id", null, deleteProductHandler);
+addRoute("POST", "/auth/register", null, createCustomerHandler);
+addRoute("POST", "/auth/login", null, loginCustomerHandler);
 
 const server = http.createServer(async function(req, res){
     requestLogger(req, res);
@@ -97,7 +98,16 @@ const server = http.createServer(async function(req, res){
     req.params = routeResult.params;
     var parsedQuery = parseQueryString(parsedUrl.searchParams); // this will return an object containing key-value pairs of query string params.
     req.query = parsedQuery; // attaching this to req object so that handlers can use it.
-    routeResult.handler(req, res);
+    // now routeResult contains the middleware, handler, params object.
+    if(routeResult.middleware){
+        // instead of calling routeResult.middleware(req, res, routeResult.handler(req, res)); we are passing a callback function because we do not want middleware to know handler directly.
+        routeResult.middleware(req, res, function(){
+            routeResult.handler(req, res);
+        });
+    }
+    else{
+        routeResult.handler(req, res);
+    }
 
 })
 

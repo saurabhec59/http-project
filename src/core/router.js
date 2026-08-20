@@ -7,14 +7,14 @@ routes.PUT = {};
 routes.PATCH = {};
 routes.DELETE = {};
 
-function addRoute(method, path, handler) {
-    routes[method][path] = handler;
+function addRoute(method, path, middleware, handler) {
+    routes[method][path] = {middleware: middleware, handler: handler};
 }
 
 // #2........
 function matchRoute(method, url){
     if(!routes[method]){
-        return { handler: methodNotAllowedHandler, params: {}};
+        return { middleware: null, handler: methodNotAllowedHandler, params: {}};
     }
 
     var requestUrlSplit = url.split("/");
@@ -43,7 +43,7 @@ function matchRoute(method, url){
         }
         // if above loop is finished and check is still true means no of parts and indivisual parts matched. Means we find the correct registered route and will return it's handler
         if(check){
-            return { handler: routes[method][i], params: params }
+            return { middleware: routes[method][i].middleware, handler: routes[method][i].handler, params: params }
         }
 
     }
@@ -51,10 +51,10 @@ function matchRoute(method, url){
 
     for(var currentMethod in routes){
         if(routes[currentMethod][url]){
-            return { handler: methodNotAllowedHandler, params: {}};
+            return { middleware: null, handler: methodNotAllowedHandler, params: {}};
         }
     }
-    return { handler: urlNotFoundHandler, params: {}};
+    return { middleware: null, handler: urlNotFoundHandler, params: {}};
 }
 
 export {addRoute, matchRoute};
