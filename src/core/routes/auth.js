@@ -1,6 +1,7 @@
 import {findCustomerByEmail, createCustomer} from '../../repositories/customer-repo.js';
 import {createCredentials, findCredentialsByCustomerId} from '../../repositories/customer-cred-repo.js';
 import {hashPassword, verifyPassword} from '../../auth/hash.js';
+import {generateToken} from '../../auth/token.js';
 import STATUS_CODES from '../../utils/status-codes.js';
 import {badRequest, internalServerError, conflict, unauthorized} from '../../utils/error-responses.js';
 import responseBuilder from '../response-builder.js';
@@ -98,9 +99,11 @@ async function loginCustomerHandler(req, res){
     const result = verifyPassword(req.body.password, customerCreds.password_salt, customerCreds.password_hash);
 
     if(result){
-        // user entered correct email & password, we will create standard response-builder method for it later and and increment jwt creation as well but for now taking one step at a time.
-        res.statusCode = STATUS_CODES.OK; // sending 200
-        res.end();
+        // user entered correct email & password, Now we will generate jwt token and send in response body.(we can in header as well)
+        // generate token with simple payload {"id": existingCustomer.id}
+        const jwtToken = generateToken({id: existingCustomer.id});
+        const payload = {token: jwtToken};
+        responseBuilder.sendAuthResponse(req, res, STATUS_CODES.OK, payload); // sending token in response body as json
         return;
     }
     // if verifyPassword() retuned false
