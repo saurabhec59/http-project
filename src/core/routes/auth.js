@@ -106,11 +106,13 @@ async function loginCustomerHandler(req, res){
         // generate token with simple payload {"id": existingCustomer.id}
         const jwtToken = generateToken({id: existingCustomer.id});
         const refToken = generateRefreshToken();
-        // generateRefreshToken() returns { refreshToken: refreshToken, hashedRefreshToken: hashedRefreshToken }, so we will store hashedRefreshToken in db and send refreshToken in response body to client.
+        // generateRefreshToken() returns { refreshToken: refreshToken, hashedRefreshToken: hashedRefreshToken }, so we will store hashedRefreshToken in db and send refreshToken to client.
         // storing hashedRefreshToken in db
         const refreshTokenExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);// 30 days from now
         await createRefreshToken(existingCustomer.id, refToken.hashedRefreshToken, refreshTokenExpiresAt); // createRefreshToken() takes 3 args (customer_id, hashedRefreshToken, expiresIn)
-        const payload = {jwtToken: jwtToken, refreshToken: refToken.refreshToken};
+        //In a browser oriented application usually server sends refresh token in 'Set-Cookie' header as: below, so that browser can send automatically as 'Cookie' header.
+        res.setHeader("Set-Cookie", "refresh_token=" + refToken.refreshToken + "; HttpOnly");
+        const payload = {jwtToken: jwtToken};// so refresh token is sent in 'Set-Cookie' header and jwt access token is sent in response body as json.
         responseBuilder.sendAuthResponse(req, res, STATUS_CODES.OK, payload); // sending token in response body as json
         return;
     }
