@@ -19,3 +19,5 @@ function parseCookies(req){
     }
     return parsedCookie;
 }
+
+export {parseCookies};

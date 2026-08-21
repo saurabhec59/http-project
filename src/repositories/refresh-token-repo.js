@@ -9,7 +9,16 @@ async function createRefreshToken(customer_id, token_hash, expires_at){
     return result.rows[0];
 }
 
-export { createRefreshToken };
+async function findHashedRefreshToken(token_hash){
+    const result = await pool.query(
+        `SELECT customer_id, expires_at
+        FROM customer_refresh_tokens
+        WHERE token_hash = $1`, [token_hash]
+    );
+    return result.rows[0] || null; // if no token found then result.rows[0] will be undefined so return null in that case
+}
+
+export { createRefreshToken, findHashedRefreshToken };
 
 /*
 we have created table with query:

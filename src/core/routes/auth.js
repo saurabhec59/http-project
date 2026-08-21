@@ -1,12 +1,14 @@
 import {findCustomerByEmail, createCustomer} from '../../repositories/customer-repo.js';
 import {createCredentials, findCredentialsByCustomerId} from '../../repositories/customer-cred-repo.js';
-import {createRefreshToken} from '../../repositories/refresh-token-repo.js';
+import {createRefreshToken, findHashedRefreshToken} from '../../repositories/refresh-token-repo.js';
 import {hashPassword, verifyPassword} from '../../auth/hash.js';
 import {generateToken, generateRefreshToken} from '../../auth/token.js';
 import STATUS_CODES from '../../utils/status-codes.js';
 import {badRequest, internalServerError, conflict, unauthorized} from '../../utils/error-responses.js';
 import responseBuilder from '../response-builder.js';
 import {withTransaction} from '../../db/transaction.js';
+import {parseCookies} from '../../middleware/cookies.js';
+import  from 'crypto';
 
 async function createCustomerHandler(req, res){
     if(!validateCustomerDetailsHandler(req)){
@@ -132,7 +134,50 @@ function validateCustomerLoginDetailsHandler(req){
     return true;
 }
 
-export {createCustomerHandler, loginCustomerHandler};
+async function refreshTokenHandler(req, res){
+    // a common approach for clients to send refresh token is in 'Cookie' header as 'refresh_token': .... with httpOnly... So we will also check there only
+    const parsedCookie = parseCookies(req); // this is an existing parser in our middleware which returns {parameter: value}
+    if(parsedCookie["refresh_token"]){
+        // now hash the token received
+        const hashedToken = crypto.createHash('sha-256').update(parsedCookie["refresh_token"]).digest('hex');
+        // send this hashedToken to db search
+        const result = await findHashedRefreshToken(hashedToken);
+        if(result !== null){
+            // means refresh token is correct and now we will check it's expiry time
+            if(new Date() <= new Date(result.expires_at)){
+                // menas exp is also valid & now we can generate new 'Access jwt token'
+                // since after login when we are creating jwt token so we are using 'id' so we will use same payload
+                // But in standard practice we need more info like email, user, id... to construct payload for
+                //jwt so in that case usually these details are obtained by making another db query into customer table with same id.
+                const jwtToken = generateToken({id: result.customer_id});
+                const payload = {jwtToken: jwtToken}; // sending in similar format as after login it is sent
+                // sending response
+                responseBuilder.sendAuthResponse(req, res, STATUS_CODES.OK, payload);
+                return;
+            }
+            else{
+                // token has expired, but still we will send 401
+                var message = unauthorized("User not authenticated");
+                responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message);
+                return;
+            }
+        }
+        else{
+            // refresh token not found
+            var message = unauthorized("User not authenticated");
+            responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message);
+            return;
+        }
+    }
+    else{
+        // no refresh-token present in cookie header so will send 401
+        var message = unauthorized("User not authenticated");
+        responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message);
+        return;
+    }
+}
+
+export {createCustomerHandler, loginCustomerHandler, refreshTokenHandler};
 
 /*
 Requirement is:
