@@ -1,7 +1,8 @@
 import {findCustomerByEmail, createCustomer} from '../../repositories/customer-repo.js';
 import {createCredentials, findCredentialsByCustomerId} from '../../repositories/customer-cred-repo.js';
+import {createRefreshToken} from '../../repositories/refresh-token-repo.js';
 import {hashPassword, verifyPassword} from '../../auth/hash.js';
-import {generateToken} from '../../auth/token.js';
+import {generateToken, generateRefreshToken} from '../../auth/token.js';
 import STATUS_CODES from '../../utils/status-codes.js';
 import {badRequest, internalServerError, conflict, unauthorized} from '../../utils/error-responses.js';
 import responseBuilder from '../response-builder.js';
@@ -102,7 +103,12 @@ async function loginCustomerHandler(req, res){
         // user entered correct email & password, Now we will generate jwt token and send in response body.(we can in header as well)
         // generate token with simple payload {"id": existingCustomer.id}
         const jwtToken = generateToken({id: existingCustomer.id});
-        const payload = {token: jwtToken};
+        const refToken = generateRefreshToken();
+        // generateRefreshToken() returns { refreshToken: refreshToken, hashedRefreshToken: hashedRefreshToken }, so we will store hashedRefreshToken in db and send refreshToken in response body to client.
+        // storing hashedRefreshToken in db
+        const refreshTokenExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);// 30 days from now
+        await createRefreshToken(existingCustomer.id, refToken.hashedRefreshToken, refreshTokenExpiresAt); // createRefreshToken() takes 3 args (customer_id, hashedRefreshToken, expiresIn)
+        const payload = {jwtToken: jwtToken, refreshToken: refToken.refreshToken};
         responseBuilder.sendAuthResponse(req, res, STATUS_CODES.OK, payload); // sending token in response body as json
         return;
     }

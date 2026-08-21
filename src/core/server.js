@@ -44,7 +44,7 @@ addRoute("PATCH", "/users/:id", null, partialUpdateByIdHandler);
 addRoute("PUT", "/users/:id", null, fullUpdateByIdHandler);
 addRoute("DELETE", "/users/:id", null, deleteUserHandler);
 addRoute("POST", "/echo", null, echoParsedBodyHandler);
-addRoute("GET", "/products", null, getAllProductsHandler);
+addRoute("GET", "/products", requireAuth, getAllProductsHandler);
 addRoute("GET", "/products/:id", null, getProductByIdHandler);
 addRoute("POST", "/products", null, createProductHandler);
 addRoute("PUT", "/products/:id", null, updateProductHandler);
