@@ -1,6 +1,6 @@
 import {findCustomerByEmail, createCustomer} from '../../repositories/customer-repo.js';
 import {createCredentials, findCredentialsByCustomerId} from '../../repositories/customer-cred-repo.js';
-import {createRefreshToken, findHashedRefreshToken} from '../../repositories/refresh-token-repo.js';
+import {createRefreshToken, findHashedRefreshToken, deleteRefreshToken} from '../../repositories/refresh-token-repo.js';
 import {hashPassword, verifyPassword} from '../../auth/hash.js';
 import {generateToken, generateRefreshToken} from '../../auth/token.js';
 import STATUS_CODES from '../../utils/status-codes.js';
@@ -8,7 +8,7 @@ import {badRequest, internalServerError, conflict, unauthorized} from '../../uti
 import responseBuilder from '../response-builder.js';
 import {withTransaction} from '../../db/transaction.js';
 import {parseCookies} from '../../middleware/cookies.js';
-import  from 'crypto';
+import crypto from 'crypto';
 
 async function createCustomerHandler(req, res){
     if(!validateCustomerDetailsHandler(req)){
@@ -177,7 +177,34 @@ async function refreshTokenHandler(req, res){
     }
 }
 
-export {createCustomerHandler, loginCustomerHandler, refreshTokenHandler};
+async function logoutCustomerHandler(req, res){
+    /*for now simply we have to delete the 'Refresh token' send by client.
+    but still even after deleting the access_token, client still may have a valid jwt access token,
+    that's why intentionally we keep exp of access tokens short.
+    since access token technically can't be deleted,
+    but there are still few little bit complex steps which invalidates a valid 'access token' but for now we will not go there.
+    */
+
+    const parsedCookie = parseCookies(req);
+    if(parsedCookie["refresh_token"]){
+        // means client has sent 'refresh_token', Now we will hash this 'refresh token' because db has hashed version
+        const hashedToken = crypto.createHash('sha-256').update(parsedCookie["refresh_token"]).digest('hex'); // using same hash method used while creating it
+        // Make db call to delete this token and we are doing this by token itself, not by id
+        // because one customer_id can have multiple valid refresh_tokens means multiple devices login & we do not wants to  logout every device
+        const result = await deleteRefreshToken(hashedToken);
+        // deleteRefreshToken() is returning no of rows deleted, if it is 0 then also it's ok to send 200 & technically there is no use of this 'result' var but will keep it
+        // sending response
+        responseBuilder.sendAuthResponse(req, res, STATUS_CODES.OK, {message: "Logout successfully"});
+        return;
+    }
+    else{
+        // means there was no 'refresh_token' in the request at all so we will send 200 but it may be 401 as well in my opinion (Debatable)
+        responseBuilder.sendAuthResponse(req, res, STATUS_CODES.OK, {message: "Logout successfully"});
+        return;
+    }
+}
+
+export {createCustomerHandler, loginCustomerHandler, refreshTokenHandler, logoutCustomerHandler};
 
 /*
 Requirement is:

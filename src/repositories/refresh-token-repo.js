@@ -18,7 +18,15 @@ async function findHashedRefreshToken(token_hash){
     return result.rows[0] || null; // if no token found then result.rows[0] will be undefined so return null in that case
 }
 
-export { createRefreshToken, findHashedRefreshToken };
+async function deleteRefreshToken(token_hash){
+    const result = await pool.query(
+    `DELETE FROM customer_refresh_tokens
+    WHERE token_hash = $1`, [token_hash]
+    );
+    return result.rowCount; // returns number of rows deleted, if now rows deleted then it will return 0
+}
+
+export { createRefreshToken, findHashedRefreshToken, deleteRefreshToken };
 
 /*
 we have created table with query:
