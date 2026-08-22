@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import crypto from 'crypto';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const TOKEN_EXPIRATION = "1h";
@@ -40,6 +41,12 @@ function verifyToken(token){
     Also It uses algo method mentioned in header of token to generate signature otherwise server have no idea which algo was used to generate that token.
 */
 
+function generateRefreshToken(){
+    const refreshToken = crypto.randomBytes(32).toString("hex"); // randomBytes() generates buffer, so we are converting that into hex string to store & use easily.
+    const hashedRefreshToken = crypto.createHash('sha-256').update(refreshToken).digest('hex'); // hashing the refreshToken to store in db, conceptually similar to passwords.
+    return { refreshToken: refreshToken, hashedRefreshToken: hashedRefreshToken }; // returning both because we will send refreshToken to client and store hashedRefreshToken in db.
+}
+
 function temperingJwt(){
     console.log("JWT secret: " + process.env.JWT_SECRET);
     // generating a token:
@@ -68,7 +75,7 @@ function temperingJwt(){
     try{ console.log("Result of verification with TEMPERED token: " + verifyToken(temperedToken)) }catch(e){ console.log( "Error because verify failed: " + e ); }
 }
 
-export { generateToken, verifyToken, temperingJwt };
+export { generateToken, verifyToken, temperingJwt, generateRefreshToken };
 
 /*
 For JWT implementation we will use node's 'jsonwebtoken' library. It provides methods to sign and verify JWT tokens.

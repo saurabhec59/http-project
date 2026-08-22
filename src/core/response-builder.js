@@ -39,6 +39,13 @@ const responseBuilder = {
         res.end();
     },
 
+    sendAuthResponse: function(req, res, statusCode, json){
+        res.statusCode = statusCode;
+        res.setHeader("Content-Type", "application/json");
+        res.write(JSON.stringify(json));
+        res.end();
+    },
+
     sendXmlResponse: function(res, xml){
         res.statusCode = STATUS_CODES.OK;
         res.setHeader("Content-Type", "application/xml");

@@ -1,4 +1,4 @@
-//import {pool} from '../db/connection.js';
+import {pool} from '../db/connection.js';
 
 async function createCredentials(client, customerId, hashedPassword, salt){
     const result = await client.query(
@@ -7,4 +7,12 @@ async function createCredentials(client, customerId, hashedPassword, salt){
     )
 }
 
-export {createCredentials};
+async function findCredentialsByCustomerId(customerId){
+    const result = await pool.query(
+        `SELECT password_salt, password_hash FROM customer_credentials
+        WHERE customer_id = $1`, [customerId]
+    )
+    return result.rows[0] || null;
+}
+
+export {createCredentials, findCredentialsByCustomerId};

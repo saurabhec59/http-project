@@ -157,9 +157,16 @@ function parseBody(req){
     })
 }
 
+async function parseBodyMiddleware(req, res, next){
+    var method = req.method;
+    if(method === "POST" || method === "PUT" || method === "PATCH"){
+        req.body = await parseBody(req);
+    }
+    return next();
+}
 
 
-export { parseBody };
+export { parseBody, parseBodyMiddleware };
 
 
 /*

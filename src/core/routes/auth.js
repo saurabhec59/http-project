@@ -1,10 +1,14 @@
 import {findCustomerByEmail, createCustomer} from '../../repositories/customer-repo.js';
-import {createCredentials} from '../../repositories/customer-cred-repo.js';
-import {hashPassword} from '../../auth/hash.js';
+import {createCredentials, findCredentialsByCustomerId} from '../../repositories/customer-cred-repo.js';
+import {createRefreshToken, findHashedRefreshToken, deleteRefreshToken} from '../../repositories/refresh-token-repo.js';
+import {hashPassword, verifyPassword} from '../../auth/hash.js';
+import {generateToken, generateRefreshToken} from '../../auth/token.js';
 import STATUS_CODES from '../../utils/status-codes.js';
-import {badRequest, internalServerError, conflict} from '../../utils/error-responses.js';
+import {badRequest, internalServerError, conflict, unauthorized} from '../../utils/error-responses.js';
 import responseBuilder from '../response-builder.js';
 import {withTransaction} from '../../db/transaction.js';
+import {parseCookies} from '../../middleware/cookies.js';
+import crypto from 'crypto';
 
 async function createCustomerHandler(req, res){
     if(!validateCustomerDetailsHandler(req)){
@@ -63,7 +67,146 @@ function validateCustomerDetailsHandler(req){
     return true;
 }
 
-export {createCustomerHandler};
+async function loginCustomerHandler(req, res){
+    // client will send email + password to login
+    // we have verifyPassword() which takes entered password, & (salt & hashedPassword) of user with that id/email and returns true/false
+    // 1st we will validate the body (email, entered password)  & this is not verifying password
+    if(!validateCustomerLoginDetailsHandler(req)){
+        var message = badRequest("Invalid customer details");
+        responseBuilder.sendErrorResponse(res, STATUS_CODES.BAD_REQUEST, message);
+        return;
+    }
+
+    // check weather the user with email exists or not
+    const existingCustomer = await findCustomerByEmail(req.body.email);
+    if(!existingCustomer){
+        // NOTE: Although we know email is incorrect but good practice is to send same error message for both email and password incorrect to avoid giving any hint to attacker about which one is incorrect.
+        var message = unauthorized("Email or password is incorrect"); // sending 401 instead of 404, READ the classic confusion of 401, 403 and it's names.
+        responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message);
+        return;
+    }
+
+    //now we can call our verifyPassword() but before calling it we need stored (salt & hashedPassword) of that user.
+    // but in db that credential is stored along with 'id' not 'email' but above we have called findCustomerByEmail() which returned that customer.
+    // finding salt & hashed password fot the user
+    const customerCreds = await findCredentialsByCustomerId(existingCustomer.id);
+
+    // checking wether credentials are found and returned by db, because if no credentials will be found with given 'id' then query method is returning null.
+    if(customerCreds === null){
+        var message = unauthorized("Email or password is incorrect");
+        responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message);
+        return;
+    }
+
+    // passing args in same sequence verifyPassword() receives.
+    const result = verifyPassword(req.body.password, customerCreds.password_salt, customerCreds.password_hash);
+
+    if(result){
+        // user entered correct email & password, Now we will generate jwt token and send in response body.(we can in header as well)
+        // generate token with simple payload {"id": existingCustomer.id}
+        const jwtToken = generateToken({id: existingCustomer.id});
+        const refToken = generateRefreshToken();
+        // generateRefreshToken() returns { refreshToken: refreshToken, hashedRefreshToken: hashedRefreshToken }, so we will store hashedRefreshToken in db and send refreshToken to client.
+        // storing hashedRefreshToken in db
+        const refreshTokenExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);// 30 days from now
+        await createRefreshToken(existingCustomer.id, refToken.hashedRefreshToken, refreshTokenExpiresAt); // createRefreshToken() takes 3 args (customer_id, hashedRefreshToken, expiresIn)
+        //In a browser oriented application usually server sends refresh token in 'Set-Cookie' header as: below, so that browser can send automatically as 'Cookie' header.
+        res.setHeader("Set-Cookie", "refresh_token=" + refToken.refreshToken + "; HttpOnly");
+        const payload = {jwtToken: jwtToken};// so refresh token is sent in 'Set-Cookie' header and jwt access token is sent in response body as json.
+        responseBuilder.sendAuthResponse(req, res, STATUS_CODES.OK, payload); // sending token in response body as json
+        return;
+    }
+    // if verifyPassword() retuned false
+    var message = unauthorized("Email or password is incorrect");
+    responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message);// client should not know 'email' was incorrect or 'password'. Thats why for both sending same 401 error response.
+    return;
+}
+
+function validateCustomerLoginDetailsHandler(req){
+    if(!(req.body && req.body.email && req.body.password)){
+        return false;
+    }
+    if(typeof req.body.email !== "string" || typeof req.body.password !== "string"){
+        return false;
+    }
+    // checking email and password length, will improve later
+    if(req.body.email.trim().length < 8 || req.body.password.trim().length < 8){
+        return false;
+    }
+    return true;
+}
+
+async function refreshTokenHandler(req, res){
+    // a common approach for clients to send refresh token is in 'Cookie' header as 'refresh_token': .... with httpOnly... So we will also check there only
+    const parsedCookie = parseCookies(req); // this is an existing parser in our middleware which returns {parameter: value}
+    if(parsedCookie["refresh_token"]){
+        // now hash the token received
+        const hashedToken = crypto.createHash('sha-256').update(parsedCookie["refresh_token"]).digest('hex');
+        // send this hashedToken to db search
+        const result = await findHashedRefreshToken(hashedToken);
+        if(result !== null){
+            // means refresh token is correct and now we will check it's expiry time
+            if(new Date() <= new Date(result.expires_at)){
+                // menas exp is also valid & now we can generate new 'Access jwt token'
+                // since after login when we are creating jwt token so we are using 'id' so we will use same payload
+                // But in standard practice we need more info like email, user, id... to construct payload for
+                //jwt so in that case usually these details are obtained by making another db query into customer table with same id.
+                const jwtToken = generateToken({id: result.customer_id});
+                const payload = {jwtToken: jwtToken}; // sending in similar format as after login it is sent
+                // sending response
+                responseBuilder.sendAuthResponse(req, res, STATUS_CODES.OK, payload);
+                return;
+            }
+            else{
+                // token has expired, but still we will send 401
+                var message = unauthorized("User not authenticated");
+                responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message);
+                return;
+            }
+        }
+        else{
+            // refresh token not found
+            var message = unauthorized("User not authenticated");
+            responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message);
+            return;
+        }
+    }
+    else{
+        // no refresh-token present in cookie header so will send 401
+        var message = unauthorized("User not authenticated");
+        responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message);
+        return;
+    }
+}
+
+async function logoutCustomerHandler(req, res){
+    /*for now simply we have to delete the 'Refresh token' send by client.
+    but still even after deleting the access_token, client still may have a valid jwt access token,
+    that's why intentionally we keep exp of access tokens short.
+    since access token technically can't be deleted,
+    but there are still few little bit complex steps which invalidates a valid 'access token' but for now we will not go there.
+    */
+
+    const parsedCookie = parseCookies(req);
+    if(parsedCookie["refresh_token"]){
+        // means client has sent 'refresh_token', Now we will hash this 'refresh token' because db has hashed version
+        const hashedToken = crypto.createHash('sha-256').update(parsedCookie["refresh_token"]).digest('hex'); // using same hash method used while creating it
+        // Make db call to delete this token and we are doing this by token itself, not by id
+        // because one customer_id can have multiple valid refresh_tokens means multiple devices login & we do not wants to  logout every device
+        const result = await deleteRefreshToken(hashedToken);
+        // deleteRefreshToken() is returning no of rows deleted, if it is 0 then also it's ok to send 200 & technically there is no use of this 'result' var but will keep it
+        // sending response
+        responseBuilder.sendAuthResponse(req, res, STATUS_CODES.OK, {message: "Logout successfully"});
+        return;
+    }
+    else{
+        // means there was no 'refresh_token' in the request at all so we will send 200 but it may be 401 as well in my opinion (Debatable)
+        responseBuilder.sendAuthResponse(req, res, STATUS_CODES.OK, {message: "Logout successfully"});
+        return;
+    }
+}
+
+export {createCustomerHandler, loginCustomerHandler, refreshTokenHandler, logoutCustomerHandler};
 
 /*
 Requirement is:

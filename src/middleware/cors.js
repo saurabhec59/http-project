@@ -1,10 +1,11 @@
 // #1... reason for this implementation
 const allowedOrigins = [ "http://localhost:3000", "http://myfrontapp.com" ]; // list of allowed origins, you can add your frontend url here like: "http://localhost:3000" or "https://myfrontend.com"
-function setCorsHeaders(req, res){
+function setCorsHeaders(req, res, next){
     var origin = req.headers["origin"];
     if(origin && allowedOrigins.includes(origin)){ // If Origin header is absent, the request is either same-origin or from a non-browser client (e.g. curl), so no CORS header is needed.
         res.setHeader("Access-Control-Allow-Origin", origin);
     }
+    return next();
 }
 
 export { setCorsHeaders };
