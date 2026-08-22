@@ -6,14 +6,14 @@ import responseBuilder from '../core/response-builder.js';
 import STATUS_CODES from '../utils/status-codes.js';
 
 const PUBLIC_DIR = path.resolve("../../public"); // #1.. this is the relative path to public directory from where we are starting node.js server(/core). we will use this to build the relative path to the requested file.
-async function serveStaticFile(req, res){
+async function serveStaticFile(req, res, next){
     try{
 
         var parsedUrl = new URL(req.url, "http://localhost:3000"); // #3.....
         //var filePath = path.join(PUBLIC_DIR, parsedUrl.pathname); // #a path.join() returns the normalized path by joining all given arguments together. like if we give path.join("a", "b", "/c/d") then it will return "a/b/c/d".
         var filePath = path.resolve(PUBLIC_DIR, "." + parsedUrl.pathname); // parsedUrl.pathname may start with "/" and a path starting with "/" is treated as absolute path on POSIX systems, so adding "." before it make it relative.
         if(filePath !== PUBLIC_DIR && !filePath.startsWith(PUBLIC_DIR + path.sep)){ // path.sep used to append "/" or "\" depending on os. Gpt this to understand this part.
-            return false; // ideally this should throw 403 forbidden but for simplicity we are returning false-> server.js will run routeMatch() -> will return nothing-> 404
+            return next(); // ideally this should throw 403 forbidden but for simplicity we are returning false-> server.js will run routeMatch() -> will return nothing-> 404
         }
         var fileStats = await fs.stat(filePath); //#4...
         if(fileStats.isDirectory()){
@@ -26,10 +26,10 @@ async function serveStaticFile(req, res){
 
         // building the response
         responseBuilder.sendStaticFileResponse(req, res, fileContent, mimeType, fileStats);
-        return true;
+        return;
     }catch(e){
         if(e.code === "ENOENT"){ // ENOENT is the error code for file not found.
-            return false; // returning false so that router will run and if matchRoute() will not find any route then it will send 404
+            return next(); // returning false so that router will run and if matchRoute() will not find any route then it will send 404
         }
         throw e; // if it is not 404 then there may be some other like permission denied, disk full etc.. which will fall into 500 internal SE and server.js will respond, not this method should.
     }

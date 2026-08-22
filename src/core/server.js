@@ -15,7 +15,7 @@ import { addRoute, matchRoute} from './router.js';
 import {homeHandler, htmlHandler, jsonHandler, xmlHandler, debugRequestHandler, emptyResponseHandler, redirectToHomePageHandler, downloadTextFileHandler, urlNotFoundHandler, methodNotAllowedHandler, echoParsedBodyHandler} from './routes/general.js';
 import {getAllUsersHandler, createUserHandler, getUserByIdHandler, partialUpdateByIdHandler, fullUpdateByIdHandler, deleteUserHandler} from './routes/users.js';
 import {getAllProductsHandler, getProductByIdHandler, createProductHandler, updateProductHandler, deleteProductHandler} from './routes/products.js';
-import {parseBody} from '../middleware/body-parser.js';
+import {parseBody, parseBodyMiddleware} from '../middleware/body-parser.js';
 import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, requestTimeOut, payloadTooLarge, conflict, unprocessableEntity, internalServerError, unsupportedMediaType} from '../utils/error-responses.js';
 import {setCorsHeaders} from '../middleware/cors.js';
 import {info, warn, error, debug} from '../utils/logger.js';
@@ -28,6 +28,8 @@ import {pool} from '../db/connection.js';
 import {findCustomerByEmail, createCustomer} from '../repositories/customer-repo.js';
 import {createCustomerHandler, loginCustomerHandler, refreshTokenHandler, logoutCustomerHandler} from './routes/auth.js';
 import {requireAuth} from '../middleware/auth.js';
+import {use, run, useErrorHandler} from './middleware-chain.js';
+import {errorHandler} from '../middleware/error-handler.js';
 
 addRoute("GET", "/", null, homeHandler);
 addRoute("GET", "/html", null, htmlHandler);
@@ -54,46 +56,18 @@ addRoute("POST", "/auth/login", null, loginCustomerHandler);
 addRoute("POST", "/auth/refresh", null, refreshTokenHandler);
 addRoute("POST", "/auth/logout", null, logoutCustomerHandler);
 
-const server = http.createServer(async function(req, res){
-    requestLogger(req, res);
-    //const result = await createCustomer("dummyDanny@gmail.com", "Danny", 25, "newYork");
-//    console.log(result);
+use(requestLogger);
+use(serveStaticFile);
+use(setCorsHeaders);// before processing the request we are checking if client has sent Origin header then attach the response header to 'res'
+use(parseBodyMiddleware);
 
-    try{
-        if(await serveStaticFile(req, res)){ return; }; // if static server returned true means file found and send, if false means continue to matchRoute(), if error means return 500
-    }catch(e){
-        var message = internalServerError("Internal Server Error");// #7. why not internalServerError(e.message)?
-        responseBuilder.sendErrorResponse(res, STATUS_CODES.INTERNAL_SERVER_ERROR, message);
-        return;
-    }
+useErrorHandler(errorHandler);
+
+const server = http.createServer(async function(req, res){
+    await run(req, res)
+    if(res.headersSent){ return; }
 
     directConsoleLogger(req);//removed console.log statements from here.
-
-    setCorsHeaders(req, res); // before processing the request we are checking if client has sent Origin header then attach the response header to 'res'
-    // #6......Using body-parser middleware
-    var method = req.method;
-    if(method === "POST" || method === "PUT" || method === "PATCH"){
-        try{
-            req.body = await parseBody(req);
-        }catch(e){
-            // parseBody() attaches a statusCode to each error so we know exactly which HTTP response to send.
-            if(e.statusCode === STATUS_CODES.REQUEST_TIMEOUT){//408
-                var message = requestTimeOut(e.message);
-                responseBuilder.sendErrorResponse(res, STATUS_CODES.REQUEST_TIMEOUT, message);
-            } else if(e.statusCode === STATUS_CODES.PAYLOAD_TOO_LARGE){ //413
-                var message = payloadTooLarge(e.message);
-                responseBuilder.sendErrorResponse(res, STATUS_CODES.PAYLOAD_TOO_LARGE, message);
-            } else if(e.statusCode === STATUS_CODES.UNSUPPORTED_MEDIA_TYPE){ //415
-                var message = unsupportedMediaType(e.message);
-                responseBuilder.sendErrorResponse(res, STATUS_CODES.UNSUPPORTED_MEDIA_TYPE, message);
-            }
-            else {
-                var message = badRequest(e.message);
-                responseBuilder.sendErrorResponse(res, STATUS_CODES.BAD_REQUEST, message);//400
-            }
-            return;
-        }
-    }
 
     var parsedUrl = new URL(req.url, "http://localhost:3000");
     var routeResult = matchRoute(req.method, parsedUrl.pathname); // #5..... sending only pathname to matchRoute() because query string is not part of route matching.

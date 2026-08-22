@@ -1,6 +1,6 @@
 import { info, warn, error, debug } from '../utils/logger.js';
 import crypto from 'crypto'; //
-function requestLogger(req, res){
+function requestLogger(req, res, next){
     var reqId = crypto.randomUUID(); // this method generates a unique identifier(string) each time it is called.
     var shortRequestId = reqId.substring(0,8); // generated uuid is 36 chars long, so only for logging we will use this shortened version of it.
     req.requestId = reqId; // assigning unique requestId to each upcoming request.
@@ -16,6 +16,8 @@ function requestLogger(req, res){
         else if(statusCode >= 300 && statusCode < 400){ warn(message); }
         else if(statusCode >=400 && statusCode <600){ error(message); }
     })
+
+    return next(); // calling next() to pass control to next middleware
 }
 
 export { requestLogger };
