@@ -64,7 +64,7 @@ async function getCustomerMeHandler(req, res){
     return;
 }
 
-// for admins to get any customer detail, REQUIRE AUTH, for now any logged in customer can get all customers but later we will implement admin one
+// for admins to get any customer detail, REQUIRE ADMIN AUTH
 async function getCustomerByIdHandler(req, res){
     // This requires auth and & if jwt access auth is successfull then requireAuth() adds req.user = payload;
     // this is the payload of jwt access token like {id: ..., role: ..., exp: ..} & we can extract id from here as well.
@@ -81,7 +81,7 @@ async function getCustomerByIdHandler(req, res){
     return;
 }
 
-// for admins, REQUIRE AUTH, for now any logged in customer can get all customers but later we will implement admin one
+// for admins, REQUIRE ADMIN AUTH
 async function getAllCustomersHandler(req, res){
     const customers = await getAllCustomers();
     responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, customers);
@@ -106,7 +106,7 @@ async function updateCustomerMeHandler(req, res){
     responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, result);
 }
 
-// FOR admins, REQUIRE AUTH, for now any logged in customer can get all customers but later we will implement admin one
+// FOR admins, REQUIRE ADMIN AUTH
 async function updateCustomerHandler(req, res){
     if((!validateUpdateCustomerDetails(req))){// id in body should match with requested 'id' in body to be updated because it's not admin request
         var message = badRequest("Invalid customer details");
@@ -134,7 +134,7 @@ async function deleteCustomerMeHandler(req, res){
     res.end();
 }
 
-// FOR admins, REQUIRE AUTH
+// FOR admins, REQUIRE ADMIN AUTH
 async function deleteCustomerHandler(req, res){
     const result = await deleteCustomer(req.params.id); // using req.params.id because admin can delete any account
     res.statusCode = STATUS_CODES.NO_CONTENT; // usually 204 no content is send after successful deleteion without a body/payload
