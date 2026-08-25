@@ -26,8 +26,9 @@ import {parseQueryString} from '../utils/query-parser.js';
 import {temperingJwt} from '../auth/token.js';
 import {pool} from '../db/connection.js';
 import {findCustomerByEmail, createCustomer} from '../repositories/customer-repo.js';
-import {createCustomerHandler, loginCustomerHandler, refreshTokenHandler, logoutCustomerHandler} from './routes/auth.js';
-import {requireAuth} from '../middleware/auth.js';
+import {loginCustomerHandler, refreshTokenHandler, logoutCustomerHandler} from './routes/auth.js';
+import {createCustomerHandler, getCustomerMeHandler, getCustomerByIdHandler, getAllCustomersHandler, updateCustomerMeHandler, updateCustomerHandler, deleteCustomerMeHandler, deleteCustomerHandler} from './routes/customers.js';
+import {requireAuth, requireAdminAuth} from '../middleware/auth.js';
 import {use, run, useErrorHandler} from './middleware-chain.js';
 import {errorHandler} from '../middleware/error-handler.js';
 
@@ -52,6 +53,13 @@ addRoute("POST", "/products", null, createProductHandler);
 addRoute("PUT", "/products/:id", null, updateProductHandler);
 addRoute("DELETE", "/products/:id", null, deleteProductHandler);
 addRoute("POST", "/auth/register", null, createCustomerHandler);
+addRoute("GET", "/customers/me", requireAuth, getCustomerMeHandler);// for customers own details, this handler will use req.user.id from jwt payload
+addRoute("GET", "/customers/:id", requireAdminAuth, getCustomerByIdHandler);// for admins, this handler wil use req.params.id
+addRoute("GET", "/customers", requireAdminAuth, getAllCustomersHandler);// for admins, this handler will return all customers
+addRoute("PATCH", "/customers/me", requireAuth, updateCustomerMeHandler);// for customers own details, this handler will use req.user.id from jwt payload
+addRoute("PATCH", "/customers/:id", requireAdminAuth, updateCustomerHandler);// for admins, this handler wil use req.params.id
+addRoute("DELETE", "/customers/me", requireAuth, deleteCustomerMeHandler);// for customers own details, this handler will use req.user.id from jwt payload
+addRoute("DELETE", "/customers/:id", requireAdminAuth, deleteCustomerHandler);// for admins, this handler wil use req.params.id
 addRoute("POST", "/auth/login", null, loginCustomerHandler);
 addRoute("POST", "/auth/refresh", null, refreshTokenHandler);
 addRoute("POST", "/auth/logout", null, logoutCustomerHandler);

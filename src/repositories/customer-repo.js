@@ -2,7 +2,7 @@ import {pool} from '../db/connection.js';
 
 async function findCustomerByEmail(email){
     const result = await pool.query(
-        `SELECT id, email, name, age, city FROM customers
+        `SELECT id, email, name, age, city, role FROM customers
         WHERE email = $1`, [email]
     );
     return result.rows[0] || null; // if no customer found then result.rows[0] will be undefined so return null in that case
@@ -17,7 +17,40 @@ async function createCustomer(client, email, name, age, city){ // after creating
     return result.rows[0];
 }
 
-export { findCustomerByEmail, createCustomer };
+async function getAllCustomers(){
+    const result = await pool.query(
+        `SELECT id, email, name, age, city FROM customers`
+    );
+    return result.rows; // returns array of all customers
+}
+
+async function getCustomerById(id){
+    const result = await pool.query(
+        `SELECT id, email, name, age, city FROM customers
+        WHERE id = $1`, [id]
+    );
+    return result.rows[0] || null; // if no customer found then result.rows[0] will be undefined so return null in that case
+}
+
+async function updateCustomer(id, email, name, age, city){
+    const result = await pool.query(
+        `UPDATE customers
+        SET email = $2, name = $3, age = $4, city = $5
+        WHERE id = $1
+        RETURNING id, email, name, age, city`, [id, email, name, age, city]
+    )
+    return result.rows[0] || null; // if no customer found then result.rows[0] will be undefined so return null in that case
+}
+
+async function deleteCustomer(id){
+    const result = await pool.query(
+        `DELETE FROM customers
+        WHERE id = $1`, [id]
+    )
+    return result.rowCount; // returns number of rows deleted, if no rows deleted then it will return 0
+}
+
+export { findCustomerByEmail, createCustomer, getAllCustomers, getCustomerById, updateCustomer, deleteCustomer };
 
 /*
 pool.query() can take 1 arg or 2 args as well.
