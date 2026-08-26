@@ -26,7 +26,7 @@ async function getAllCustomers(){
 
 async function getCustomerById(id){
     const result = await pool.query(
-        `SELECT id, email, name, age, city FROM customers
+        `SELECT id, email, name, age, city, role FROM customers
         WHERE id = $1`, [id]
     );
     return result.rows[0] || null; // if no customer found then result.rows[0] will be undefined so return null in that case
