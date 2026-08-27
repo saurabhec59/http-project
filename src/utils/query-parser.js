@@ -1,5 +1,7 @@
 
-const allowedFilterFields = ["name", "age", "category"]; // this wil prevent any unknown query params like ?password=420 to be stored in filtering object.
+const ALLOWED_FILTER_FIELDS = ["name", "age", "category"]; // this wil prevent any unknown query params like ?password=420 to be stored in filtering object.
+const ALLOWED_SORTING_FIELDS = ["id", "name", "email", "age", "city"]; // this will prevent any unknown query params like ?sort=role
+const MAX_PAGE_LIMIT = 100; // this will prevent any wrong query params like ?limit=1000
 
 function parseQueryString(searchParams){ // this method is receiving '.searchParams' object from new URL(req.url, "http://localhost:3000").searchParams
 
@@ -53,7 +55,7 @@ function parseQueryString(searchParams){ // this method is receiving '.searchPar
                 parsedQueryString.search = value;
             }
         }
-        else if(allowedFilterFields.includes(key)){// rest all remaining query params will by default considered as filtering params but only after checking 'allowedFilteringParams'
+        else if(ALLOWED_FILTER_FIELDS.includes(key)){// rest all remaining query params will by default considered as filtering params but only after checking 'allowedFilteringParams'
             parsedQueryString.filtering[key] = value;
         }
         else{
@@ -66,19 +68,34 @@ function parseQueryString(searchParams){ // this method is receiving '.searchPar
 
 // TEMPORARY VALIDATION FUNCTIONS, Intentionally kept like that, we can implement proper validation later on.
 function pageValidation(value){
-    return true;
+    // must be an integer and greater then 0, else for now default value 1 will be used.
+    var page = Number(value);
+    if(Number.isInteger(page) && page > 0){
+        return true;
+    }
+    return false;
 }
 
 function limitValidation(value){
-    return true;
+    // must be an integer and greater then 0 & less than MAX_PAGE_LIMIT, else for now default value 10 will be used.
+    var limit = Number(value);
+    if(Number.isInteger(limit) && limit <= MAX_PAGE_LIMIT && limit > 0){
+        return true;
+    }
+    return false;
 }
 
 function sortValidation(value){
-    return true;
+    if(ALLOWED_SORTING_FIELDS.includes(value)){
+        return true;
+    }
+    else {
+        return false;
+    }
 }
 
 function orderValidation(value){
-    return true;
+    return value === "asc" || value === "desc"; // allowing only asc or desc, if any other value is send then it will be ignored and default value of 'asc' will be used.
 }
 
 function fieldsValidation(value){

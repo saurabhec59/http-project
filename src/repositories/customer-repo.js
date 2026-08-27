@@ -17,11 +17,21 @@ async function createCustomer(client, email, name, age, city){ // after creating
     return result.rows[0];
 }
 
-async function getAllCustomers(){
+async function getAllCustomers(sortBy, order, limit, offset){
     const result = await pool.query(
-        `SELECT id, email, name, age, city FROM customers`
+        `SELECT id, email, name, age, city FROM customers
+        ORDER BY ${sortBy} ${order}
+        LIMIT $1
+        OFFSET $2`, [limit, offset]
     );
     return result.rows; // returns array of all customers
+}
+
+async function getAllCustomersCount(){
+    const result = await pool.query(
+        `SELECT COUNT(*) FROM customers`
+    );
+    return Number(result.rows[0].count); // returns total number of customers in db
 }
 
 async function getCustomerById(id){
@@ -50,7 +60,7 @@ async function deleteCustomer(id){
     return result.rowCount; // returns number of rows deleted, if no rows deleted then it will return 0
 }
 
-export { findCustomerByEmail, createCustomer, getAllCustomers, getCustomerById, updateCustomer, deleteCustomer };
+export { findCustomerByEmail, createCustomer, getAllCustomers, getCustomerById, updateCustomer, deleteCustomer, getAllCustomersCount };
 
 /*
 pool.query() can take 1 arg or 2 args as well.
