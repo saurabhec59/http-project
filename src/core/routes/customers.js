@@ -1,4 +1,4 @@
-import {findCustomerByEmail, createCustomer, getCustomerById, getAllCustomers, updateCustomer, deleteCustomer} from '../../repositories/customer-repo.js';
+import {findCustomerByEmail, createCustomer, getCustomerById, getAllCustomers, updateCustomer, deleteCustomer, getAllCustomersCount} from '../../repositories/customer-repo.js';
 import {createCredentials, findCredentialsByCustomerId} from '../../repositories/customer-cred-repo.js';
 import {hashPassword, verifyPassword} from '../../auth/hash.js';
 import STATUS_CODES from '../../utils/status-codes.js';
@@ -83,8 +83,24 @@ async function getCustomerByIdHandler(req, res){
 
 // for admins, REQUIRE ADMIN AUTH
 async function getAllCustomersHandler(req, res){
-    const customers = await getAllCustomers();
-    responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, customers);
+    refineQueryParams(req);
+    var sort = req.query.sorting.sort;
+    var order = req.query.sorting.order;
+    var limit = req.query.pagination.limit;
+    var offset = (req.query.pagination.page -1) * limit; // in psql, there is not page concept, so we use offset which means skip first 'offset' number of rows
+    // if limit passed is more than total rows in db then psql will return available rows only
+    // if offset passed is more than total rows in db then psql will return empty array, so we don't need to handle that case here.
+    const customers = await getAllCustomers(sort, order, limit, offset);
+    const totalCustomers = await getAllCustomersCount() // getting total count of customers in db, ALSO BE CAUTIOUS ABOUT SIGNATURE OF getAllCustomersCount() AS getAllCustomers() Except LIMIT & OFFSET
+    const data = {
+        data: customers,
+        page: req.query.pagination.page,
+        limit: limit,
+        count : customers.length, // this is the number of rows returned by psql, not total rows in db, for that we need to do another query to count total rows in db.
+        total: totalCustomers, // this is the total number of rows in db of customers table
+        totalPages: Math.ceil(totalCustomers / limit) // this is the total number of pages available in db.
+    }
+    responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, data);
 }
 
 // REQUIRE AUTH
@@ -171,6 +187,12 @@ function validateUpdateCustomerDetails(req){
         return false;
     }
     return true;
+}
+
+function refineQueryParams(req){
+    if(req.query && req.query.sorting.sort === null){
+        req.query.sorting.sort = "id"; // default sorting field is id
+    }
 }
 
 export {createCustomerHandler, getCustomerMeHandler, getCustomerByIdHandler, getAllCustomersHandler, updateCustomerMeHandler, updateCustomerHandler, deleteCustomerMeHandler, deleteCustomerHandler};
