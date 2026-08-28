@@ -4,28 +4,25 @@ import {createRefreshToken, findHashedRefreshToken, deleteRefreshToken} from '..
 import {hashPassword, verifyPassword} from '../../auth/hash.js';
 import {generateToken, generateRefreshToken} from '../../auth/token.js';
 import STATUS_CODES from '../../utils/status-codes.js';
-import {badRequest, internalServerError, conflict, unauthorized} from '../../utils/error-responses.js';
 import responseBuilder from '../response-builder.js';
 import {parseCookies} from '../../middleware/cookies.js';
 import crypto from 'crypto';
+import {BadRequestError} from '../../errors/BadRequestError.js';
+import {UnauthorizedError} from '../../errors/UnauthorizedError.js';
 
 async function loginCustomerHandler(req, res){
     // client will send email + password to login
     // we have verifyPassword() which takes entered password, & (salt & hashedPassword) of user with that id/email and returns true/false
     // 1st we will validate the body (email, entered password)  & this is not verifying password
     if(!validateCustomerLoginDetailsHandler(req)){
-        var message = badRequest("Invalid customer details");
-        responseBuilder.sendErrorResponse(res, STATUS_CODES.BAD_REQUEST, message);
-        return;
+        throw new BadRequestError("Invalid customer details");
     }
 
     // check weather the user with email exists or not
     const existingCustomer = await findCustomerByEmail(req.body.email);
     if(!existingCustomer){
         // NOTE: Although we know email is incorrect but good practice is to send same error message for both email and password incorrect to avoid giving any hint to attacker about which one is incorrect.
-        var message = unauthorized("Email or password is incorrect"); // sending 401 instead of 404, READ the classic confusion of 401, 403 and it's names.
-        responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message);
-        return;
+        throw new UnauthorizedError("Email or password is incorrect"); // sending 401 instead of 404, READ the classic confusion of 401, 403 and it's names.
     }
 
     //now we can call our verifyPassword() but before calling it we need stored (salt & hashedPassword) of that user.
@@ -35,9 +32,7 @@ async function loginCustomerHandler(req, res){
 
     // checking weather credentials are found and returned by db, because if no credentials will be found with given 'id' then query method is returning null.
     if(customerCreds === null){
-        var message = unauthorized("Email or password is incorrect");
-        responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message);
-        return;
+        throw new UnauthorizedError("Email or password is incorrect");
     }
 
     // passing args in same sequence verifyPassword() receives.
@@ -59,9 +54,7 @@ async function loginCustomerHandler(req, res){
         return;
     }
     // if verifyPassword() retuned false
-    var message = unauthorized("Email or password is incorrect");
-    responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message);// client should not know 'email' was incorrect or 'password'. Thats why for both sending same 401 error response.
-    return;
+    throw new UnauthorizedError("Email or password is incorrect");// client should not know 'email' was incorrect or 'password'. Thats why for both sending same 401 error response.
 }
 
 function validateCustomerLoginDetailsHandler(req){
@@ -101,23 +94,17 @@ async function refreshTokenHandler(req, res){
             }
             else{
                 // token has expired, but still we will send 401
-                var message = unauthorized("User not authenticated");
-                responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message);
-                return;
+                throw new UnauthorizedError("User not authenticated");
             }
         }
         else{
             // refresh token not found
-            var message = unauthorized("User not authenticated");
-            responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message);
-            return;
+            throw new UnauthorizedError("User not authenticated");
         }
     }
     else{
         // no refresh-token present in cookie header so will send 401
-        var message = unauthorized("User not authenticated");
-        responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message);
-        return;
+        throw new UnauthorizedError("User not authenticated");
     }
 }
 

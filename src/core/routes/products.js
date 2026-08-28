@@ -1,8 +1,8 @@
 import { getAllProducts, getProductById, createProduct, updateProduct, deleteProduct } from '../../data/store.js';
 import responseBuilder from '../response-builder.js';
 import STATUS_CODES from '../../utils/status-codes.js';
-import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, requestTimeOut, payloadTooLarge, conflict, unprocessableEntity, internalServerError} from '../../utils/error-responses.js';
 import {applyQueryParams} from '../../utils/query-handler.js';
+import {NotFoundError} from '../../errors/NotFoundError.js';
 
 function getAllProductsHandler(req, res){
     var products = getAllProducts();
@@ -15,9 +15,7 @@ function getProductByIdHandler(req, res){
     var pId = parseInt(req.params.id);
     var product = getProductById(pId);
     if(!product){
-        var message = notFound("Product with id " + req.params.id + " not found");
-        responseBuilder.send404Response(res, message);
-        return;
+        throw new NotFoundError("Product with id " + req.params.id + " not found");
     }
     responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, product);
 }
@@ -33,9 +31,7 @@ function updateProductHandler(req, res){
     var product = getProductById(parseInt(req.params.id));
 
     if(!product){
-        var message = notFound("Product with id " + req.params.id + " not found");
-        responseBuilder.send404Response(res, message);
-        return;
+        throw new NotFoundError("Product with id " + req.params.id + " not found");
     }
 
     updateProduct(parseInt(req.params.id), req.body);
@@ -47,9 +43,7 @@ function updateProductHandler(req, res){
 function deleteProductHandler(req, res){
     var product = getProductById(parseInt(req.params.id));
     if(!product){
-        var message = notFound("Product with id " + req.params.id + " not found");
-        responseBuilder.send404Response(res, message);
-        return;
+        throw new NotFoundError("Product with id " + req.params.id + " not found");
     }
 
     deleteProduct(parseInt(req.params.id));

@@ -12,6 +12,11 @@
 */
 import { XMLParser } from "fast-xml-parser";
 import { parseContentType } from './headers.js';
+import {RequestTimeoutError} from '../errors/RequestTimeoutError.js';
+import {PayloadTooLargeError} from '../errors/PayloadTooLargeError.js';
+import {UnsupportedMediaTypeError} from '../errors/UnsupportedMediaTypeError.js';
+import {BadRequestError} from '../errors/BadRequestError.js';
+
 const xmlParser = new XMLParser(); // we do not want to create new instance of XMLParser for each request so we are creating it once and reusing it for all requests.
 function parseBody1(req){  // #1....
     var body = "";
@@ -31,18 +36,14 @@ function parseBody(req){
 
         // #9....  Setting time out if client did not sent bytes/payload after connection
         var timeout = setTimeout(function(){
-            var error = new Error("Request timed out"); // #10....
-            error.statusCode = 408; // 408 REQUEST_TIMEOUT
-            onFailure(error);
+            onFailure(new RequestTimeoutError("Request timed out")); // #10....
             req.resume(); // #11...
 
         }, 30000);
         // preventing server from processing large malicious or fake requests ===>  #5......
         if(req.headers["content-length"] && parseInt(req.headers["content-length"]) > MAX_BODY_SIZE){
-            var error = new Error("Request body too large");
-            error.statusCode = 413; // PAYLOAD_TOO_LARGE
             clearTimeout(timeout); // cancel the timer so it doesn't fire again after we already rejected
-            onFailure(error);
+            onFailure(new PayloadTooLargeError("Request body too large"));
             return;
             /*
                 it's not always guaranteed that each request with a body/payload will have header "Content-Length" but as for a preventive measure we can check that if client has sent that header
@@ -59,10 +60,8 @@ function parseBody(req){
             // although we are already checking content-length header size above but still client can fake that header and send large payload so we are checking the actual size of data received here.
             chunkSize += chunk.length;
             if(chunkSize > MAX_BODY_SIZE){
-                var error = new Error("Request body too large");
-                error.statusCode = 413; // PAYLOAD_TOO_LARGE
                 clearTimeout(timeout); // cancel the timer so it doesn't fire again after we already rejected
-                onFailure(error);
+                onFailure(new PayloadTooLargeError("Request body too large"));
                 req.resume();
                 return;
             }
@@ -75,10 +74,8 @@ function parseBody(req){
                 }
                 else{
                     // if encodingType is not supported by Node.js then we can not process the request body and we should reject the request.
-                    var error = new Error("Unsupported character encoding: " + encodingType);
-                    error.statusCode = 415; // UNSUPPORTED_MEDIA_TYPE
                     clearTimeout(timeout); // cancel the timer so it doesn't fire again after we already rejected
-                    onFailure(error);
+                    onFailure(new UnsupportedMediaTypeError("Unsupported character encoding: " + encodingType));
                     req.resume();
                     return;
                 }
@@ -101,8 +98,7 @@ function parseBody(req){
                     onSuccess(data);
                     return;
                 }catch(e){
-                    e.statusCode = 400; // BAD_REQUEST
-                    onFailure(e);
+                    onFailure(new BadRequestError("Invalid JSON format"));
                 }
             }
             else if(contentType.mimeType === "application/x-www-form-urlencoded"){ // #3....
@@ -135,8 +131,7 @@ function parseBody(req){
                     onSuccess(parsedData);
                     return;
                 }catch(e){
-                    e.statusCode = 400; // BAD_REQUEST
-                    onFailure(e);
+                    onFailure(new BadRequestError("Invalid XML format"));
                 }
             }
             else
@@ -148,9 +143,7 @@ function parseBody(req){
         function resetTimeout(){
             clearTimeout(timeout);
             return setTimeout(function(){
-                var error = new Error("Request timed out");
-                error.statusCode = 408; // 408 REQUEST_TIMEOUT
-                onFailure(error);
+                onFailure(new RequestTimeoutError("Request timed out"));
                 req.resume();
             }, 30000);
         }

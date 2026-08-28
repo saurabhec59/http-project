@@ -1,30 +1,27 @@
 import {verifyToken} from '../auth/token.js';
-import {unauthorized, forbidden} from '../utils/error-responses.js';
-import STATUS_CODES from '../utils/status-codes.js';
-import responseBuilder from '../core/response-builder.js';
+import {UnauthorizedError} from '../errors/UnauthorizedError.js';
+import {ForbiddenError} from '../errors/ForbiddenError.js';
 
 // How a typical Authorization looks like: Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6...
 
 // This method is for JWT AUTHENTICATION
-function requireAuth(req, res, next){
+async function requireAuth(req, res, next){
     // jwtAuthentication() helper will return payload of jwt access token if jwt access token is verified successfully, otherwise it will return null
     const payload = jwtAuthentication(req);
     if(payload !== null){
         // means jwt access token is verified successfully, payload inserted in 'req.user' and we can call next() to pass control handler
-        return next(); //HERE next() IS NOT THE HANDLER ITSELF, IT IS A CALLBACK FUNCTION AND INSIDE THAT CALLBACK HANDLER IS CALLED WITH ARGS IT NEEDS, see server.js
+        return await next(); //HERE next() IS NOT THE HANDLER ITSELF, IT IS A CALLBACK FUNCTION AND INSIDE THAT CALLBACK HANDLER IS CALLED WITH ARGS IT NEEDS, see server.js
     }
     else{
         // when jwt token is not verified then jwt.verify() will throw error and jwtAuthentication() will return null.
         // if 'Authorization' header is not present, header is present but scheme is not 'bearer', scheme is there but token is not there
         // In all cases this middleware should reject the request from further processing with error 401 unauthorized.
-        var message = unauthorized("User not authenticated");
-        responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message)
-        return;
+        throw new UnauthorizedError("User not authenticated");
     }
 }
 
 // This method is for JWT AUTHENTICATION + AUTHORIZATION
-function requireAdminAuth(req, res, next){
+async function requireAdminAuth(req, res, next){
     // DOING AUTHENTICATION 1st, call jwtAuthentication() to verify jwt access token and get payload
     const payload = jwtAuthentication(req);
     if(payload !== null){
@@ -32,20 +29,16 @@ function requireAdminAuth(req, res, next){
         // Now check AUTHORIZATION, if user is admin or not.
         if(payload.role === "admin"){
             // user is admin, so call next() to pass control to handler
-            return next(); //HERE next() IS NOT THE HANDLER ITSELF, IT IS A CALLBACK FUNCTION AND INSIDE THAT CALLBACK HANDLER IS CALLED WITH ARGS IT NEEDS, see server.js
+            return await next(); //HERE next() IS NOT THE HANDLER ITSELF, IT IS A CALLBACK FUNCTION AND INSIDE THAT CALLBACK HANDLER IS CALLED WITH ARGS IT NEEDS, see server.js
         }
         else{
             // AUTHORIZATION failed, user is not admin, so reject the request with 403 forbidden
-            var message = forbidden("User not authorized");
-            responseBuilder.sendErrorResponse(res, STATUS_CODES.FORBIDDEN, message)
-            return;
+            throw new ForbiddenError("User not authorized");
         }
     }
     else{
         // jwt token not verified means AUTHENTICATION failed, so reject the request with 401 unauthorized
-        var message = unauthorized("User not authenticated");
-        responseBuilder.sendErrorResponse(res, STATUS_CODES.UNAUTHORIZED, message)
-        return;
+        throw new UnauthorizedError("User not authenticated");
     }
 }
 

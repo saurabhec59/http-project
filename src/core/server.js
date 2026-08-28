@@ -16,7 +16,6 @@ import {homeHandler, htmlHandler, jsonHandler, xmlHandler, debugRequestHandler, 
 import {getAllUsersHandler, createUserHandler, getUserByIdHandler, partialUpdateByIdHandler, fullUpdateByIdHandler, deleteUserHandler} from './routes/users.js';
 import {getAllProductsHandler, getProductByIdHandler, createProductHandler, updateProductHandler, deleteProductHandler} from './routes/products.js';
 import {parseBody, parseBodyMiddleware} from '../middleware/body-parser.js';
-import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, requestTimeOut, payloadTooLarge, conflict, unprocessableEntity, internalServerError, unsupportedMediaType} from '../utils/error-responses.js';
 import {setCorsHeaders} from '../middleware/cors.js';
 import {info, warn, error, debug} from '../utils/logger.js';
 import {requestLogger} from '../middleware/request-logger.js';
@@ -29,7 +28,7 @@ import {findCustomerByEmail, createCustomer} from '../repositories/customer-repo
 import {loginCustomerHandler, refreshTokenHandler, logoutCustomerHandler} from './routes/auth.js';
 import {createCustomerHandler, getCustomerMeHandler, getCustomerByIdHandler, getAllCustomersHandler, updateCustomerMeHandler, updateCustomerHandler, deleteCustomerMeHandler, deleteCustomerHandler} from './routes/customers.js';
 import {requireAuth, requireAdminAuth} from '../middleware/auth.js';
-import {use, run, useErrorHandler} from './middleware-chain.js';
+import {use, run} from './middleware-chain.js';
 import {errorHandler} from '../middleware/error-handler.js';
 
 addRoute("GET", "/", null, homeHandler);
@@ -69,30 +68,31 @@ use(serveStaticFile);
 use(setCorsHeaders);// before processing the request we are checking if client has sent Origin header then attach the response header to 'res'
 use(parseBodyMiddleware);
 
-useErrorHandler(errorHandler);
-
 const server = http.createServer(async function(req, res){
-    await run(req, res)
-    if(res.headersSent){ return; }
+    try{
+        await run(req, res)
+        if(res.headersSent){ return; }
 
-    directConsoleLogger(req);//removed console.log statements from here.
+        directConsoleLogger(req);//removed console.log statements from here.
 
-    var parsedUrl = new URL(req.url, "http://localhost:3000");
-    var routeResult = matchRoute(req.method, parsedUrl.pathname); // #5..... sending only pathname to matchRoute() because query string is not part of route matching.
-    req.params = routeResult.params;
-    var parsedQuery = parseQueryString(parsedUrl.searchParams); // this will return an object containing key-value pairs of query string params.
-    req.query = parsedQuery; // attaching this to req object so that handlers can use it.
-    // now routeResult contains the middleware, handler, params object.
-    if(routeResult.middleware){
-        // instead of calling routeResult.middleware(req, res, routeResult.handler(req, res)); we are passing a callback function because we do not want middleware to know handler directly.
-        routeResult.middleware(req, res, function(){
-            routeResult.handler(req, res);
-        });
+        var parsedUrl = new URL(req.url, "http://localhost:3000");
+        var routeResult = matchRoute(req.method, parsedUrl.pathname); // #5..... sending only pathname to matchRoute() because query string is not part of route matching.
+        req.params = routeResult.params;
+        var parsedQuery = parseQueryString(parsedUrl.searchParams); // this will return an object containing key-value pairs of query string params.
+        req.query = parsedQuery; // attaching this to req object so that handlers can use it.
+        // now routeResult contains the middleware, handler, params object.
+        if(routeResult.middleware){
+            // instead of calling routeResult.middleware(req, res, routeResult.handler(req, res)); we are passing a callback function because we do not want middleware to know handler directly.
+            await routeResult.middleware(req, res, async function(){
+                await routeResult.handler(req, res);
+            });
+        }
+        else{
+            await routeResult.handler(req, res);
+        }
+    }catch(error){
+        errorHandler(error, req, res);
     }
-    else{
-        routeResult.handler(req, res);
-    }
-
 })
 
 

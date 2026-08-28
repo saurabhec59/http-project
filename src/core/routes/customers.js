@@ -2,46 +2,35 @@ import {findCustomerByEmail, createCustomer, getCustomerById, getAllCustomers, u
 import {createCredentials, findCredentialsByCustomerId} from '../../repositories/customer-cred-repo.js';
 import {hashPassword, verifyPassword} from '../../auth/hash.js';
 import STATUS_CODES from '../../utils/status-codes.js';
-import {badRequest, internalServerError, conflict, unauthorized, notFound} from '../../utils/error-responses.js';
 import responseBuilder from '../response-builder.js';
 import {withTransaction} from '../../db/transaction.js';
+import {BadRequestError} from '../../errors/BadRequestError.js';
+import {ConflictError} from '../../errors/ConflictError.js';
+import {NotFoundError} from '../../errors/NotFoundError.js';
 
 // NO AUTH REQUIRED
 async function createCustomerHandler(req, res){
     if(!validateCustomerDetailsHandler(req)){
         // validation failed, sending 400
-        var message = badRequest("Invalid customer details");
-        responseBuilder.sendErrorResponse(res, STATUS_CODES.BAD_REQUEST, message);
-        return;
+        throw new BadRequestError("Invalid customer details");
     }
 
     // check if user with same email already exists
     const existingCustomer = await findCustomerByEmail(req.body.email);
     if(existingCustomer !== null){
         // user with same email already exists, send 409 Conflict response
-        var message = conflict("Customer with email " + req.body.email + " already exists");
-        responseBuilder.sendErrorResponse(res, STATUS_CODES.CONFLICT, message);
-        return;
+        throw new ConflictError("Customer with email " + req.body.email + " already exists");
     }
 
     // hashing password
     const hashedObject = hashPassword(req.body.password);
 
     // using transaction, wrapping in try-catch to handle any errors during transaction // <===> ALSO FOLLOW HOW RETURN IS HAPPENING FROM createCustomer() -> withTransaction() -> its's callback -> then how finally response is being sent
-    var createdCustomer;
-    try{
-         createdCustomer = await withTransaction(async function(client){
-            // now calling createCustomer() to create new customer in database
-            const newCustomer = await createCustomer(client, req.body.email, req.body.name, req.body.age, req.body.city);
-            // storing credentials in db
-            await createCredentials(client, newCustomer.id, hashedObject.hashedPassword, hashedObject.salt);
-            return newCustomer;
-        })
-    }catch(e){
-        var message = internalServerError("Internal server error");
-        responseBuilder.sendErrorResponse(res, STATUS_CODES.INTERNAL_SERVER_ERROR, message);
-        return;
-    }
+    const createdCustomer = await withTransaction(async function(client){
+        const newCustomer = await createCustomer(client, req.body.email, req.body.name, req.body.age, req.body.city);
+        await createCredentials(client, newCustomer.id, hashedObject.hashedPassword, hashedObject.salt);
+        return newCustomer;
+    });
 
     // we will return here the response using response builder
     responseBuilder.sendJsonResponse(req, res, STATUS_CODES.CREATED, createdCustomer);
@@ -56,9 +45,7 @@ async function getCustomerMeHandler(req, res){
     const customer = await getCustomerById(req.user.id);
     if(customer === null){
         // means user with this id does not exist so send 404 not found
-        var message = notFound("Resource not found");
-        responseBuilder.sendErrorResponse(res, STATUS_CODES.NOT_FOUND, message);
-        return;
+        throw new NotFoundError("Resource not found");
     }
     responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, customer);
     return;
@@ -73,9 +60,7 @@ async function getCustomerByIdHandler(req, res){
     const customer = await getCustomerById(req.params.id); // we can use req.params.id as well because matchRoute() parses params (:)  as well.
     if(customer === null){
         // means user with this id does not exist so send 404 not found
-        var message = notFound("Resource not found");
-        responseBuilder.sendErrorResponse(res, STATUS_CODES.NOT_FOUND, message);
-        return;
+        throw new NotFoundError("Resource not found");
     }
     responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, customer);
     return;
@@ -106,17 +91,13 @@ async function getAllCustomersHandler(req, res){
 // REQUIRE AUTH
 async function updateCustomerMeHandler(req, res){
     if((!validateUpdateCustomerDetails(req))){// id in jwt should match with requested 'id' in body to be updated becuase it's not admin request
-        var message = badRequest("Invalid customer details");
-        responseBuilder.sendErrorResponse(res, STATUS_CODES.BAD_REQUEST, message);
-        return;
+        throw new BadRequestError("Invalid customer details");
     }
     // USING req.user.id BECAUSE it's a self update request , Also sequence should be id, email, name, age, city in argument
     const result = await updateCustomer(req.user.id, req.body.email, req.body.name, req.body.age, req.body.city);
     // in case customer did not exist, result will be null, so we will send 404 not found
     if(result === null){
-         var message = notFound("Resource not found");
-         responseBuilder.sendErrorResponse(res, STATUS_CODES.NOT_FOUND, message);
-         return;
+        throw new NotFoundError("Resource not found");
     }
     // returning returned updated row/customer
     responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, result);
@@ -124,18 +105,14 @@ async function updateCustomerMeHandler(req, res){
 
 // FOR admins, REQUIRE ADMIN AUTH
 async function updateCustomerHandler(req, res){
-    if((!validateUpdateCustomerDetails(req))){// id in body should match with requested 'id' in body to be updated because it's not admin request
-        var message = badRequest("Invalid customer details");
-        responseBuilder.sendErrorResponse(res, STATUS_CODES.BAD_REQUEST, message);
-        return;
+    if(!validateUpdateCustomerDetails(req)){
+        throw new BadRequestError("Invalid customer details");
     }
     // USING req.params.id BECAUSE admin can update any customer , Also sequence should be id, email, name, age, city in argument
     const result = await updateCustomer(req.params.id, req.body.email, req.body.name, req.body.age, req.body.city);
     // in case customer did not exist, result will be null, so we will send 404 not found
     if(result === null){
-         var message = notFound("Resource not found");
-         responseBuilder.sendErrorResponse(res, STATUS_CODES.NOT_FOUND, message);
-         return;
+        throw new NotFoundError("Resource not found");
     }
     // returning returned updated row/customer
     responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, result);
