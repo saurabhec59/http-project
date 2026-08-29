@@ -1,9 +1,9 @@
 import { getAll, create, getById, update, deleteById } from '../../data/store.js';
 import responseBuilder from '../response-builder.js';
 import STATUS_CODES from '../../utils/status-codes.js';
-import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, requestTimeOut, payloadTooLarge, conflict, unprocessableEntity, internalServerError} from '../../utils/error-responses.js';
 import {applyQueryParams} from '../../utils/query-handler.js';
 import {parseQueryString} from '../../utils/query-parser.js';
+import {NotFoundError} from '../../errors/NotFoundError.js';
 
 function getAllUsersHandler(req, res){
     var users = getAll();
@@ -24,9 +24,7 @@ function createUserHandler(req, res){
 function getUserByIdHandler(req, res){
     var user = getById(parseInt(req.params.id));
     if(!user){ // because getBYId() only loops through the array and if it does not find any user then it will not return anything and this variable 'user' will be undefined.
-        var message = notFound("User with id " + req.params.id + " not found");
-        responseBuilder.send404Response(res, message);
-        return;
+        throw new NotFoundError("User with id " + req.params.id + " not found");
     }
     responseBuilder.sendJsonResponse(req, res, STATUS_CODES.OK, user);
 }
@@ -39,9 +37,7 @@ function partialUpdateByIdHandler(req, res){
     var user = getById(parseInt(req.params.id));
 
     if(!user){
-        var message = notFound("User with id " + req.params.id + " not found");
-        responseBuilder.send404Response(res, message);
-        return;
+        throw new NotFoundError("User with id " + req.params.id + " not found");
     }
 
     // now update only age
@@ -63,9 +59,7 @@ function fullUpdateByIdHandler(req, res){
     var user = getById(parseInt(req.params.id));
 
     if(!user){
-        var message = notFound("User with id " + req.params.id + " not found");
-        responseBuilder.send404Response(res, message);
-        return;
+        throw new NotFoundError("User with id " + req.params.id + " not found");
     }
 
     // now update name & age
@@ -81,9 +75,7 @@ function fullUpdateByIdHandler(req, res){
 function deleteUserHandler(req, res){
     var user = getById(parseInt(req.params.id));
     if(!user){
-        var message = notFound("User with id " + req.params.id + " not found");
-        responseBuilder.send404Response(res, message);
-        return;
+        throw new NotFoundError("User with id " + req.params.id + " not found");
     }
 
     // calling deleteById() method of store.js to delete user with that id

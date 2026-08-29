@@ -1,7 +1,8 @@
 import responseBuilder from "../response-builder.js";
 import STATUS_CODES from "../../utils/status-codes.js";
-import {badRequest, unauthorized, forbidden, notFound, methodNotAllowed, requestTimeOut, payloadTooLarge, conflict, unprocessableEntity, internalServerError } from '../../utils/error-responses.js';
 import {parseContentType} from '../../middleware/headers.js';
+import {NotFoundError} from '../../errors/NotFoundError.js';
+import {MethodNotAllowedError} from '../../errors/MethodNotAllowedError.js';
 
 function homeHandler(req, res){
     var html = "<h2>Home page with html content</h2>";
@@ -63,13 +64,11 @@ function downloadTextFileHandler(req, res){
 }
 
 function urlNotFoundHandler(req, res){
-    var message = notFound("url not found");
-    responseBuilder.send404Response(res, message);
+    throw new NotFoundError("url not found");
 }
 
 function methodNotAllowedHandler(req, res){
-    var message = methodNotAllowed("method " + req.method + " not allowed");
-    responseBuilder.send405Response(res, message);
+    throw new MethodNotAllowedError("method " + req.method + " not allowed");
 }
 
 function echoParsedBodyHandler(req, res){ // #1....
