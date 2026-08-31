@@ -9,13 +9,6 @@ function generateETag(body){
 
 const responseBuilder = {
 
-    sendTextResponse: function(res, text){
-        res.statusCode = STATUS_CODES.OK;
-        res.setHeader("Content-Type", "text/plain");
-        res.write(text);
-        res.end();
-    },
-
     sendHtmlResponse: function(res, html){
         res.statusCode = STATUS_CODES.OK;
         res.setHeader("Content-Type", "text/html");
@@ -70,48 +63,6 @@ const responseBuilder = {
         res.setHeader("Content-Type", "text/plain");
         res.setHeader("Content-Disposition", "attachment; filename=\"myfile.txt\""); // filename attribute tells client that while saving use this name for the file. The weired syntax is js escaping.
         res.write(text);
-        res.end();
-    },
-
-    send400Response: function(res, message){
-        res.statusCode = STATUS_CODES.BAD_REQUEST;
-        res.setHeader("Content-Type", "application/json");
-        res.write(JSON.stringify(message));
-        res.end();
-    },
-
-    send404Response: function(res, message){
-        res.statusCode = STATUS_CODES.NOT_FOUND;
-        res.setHeader("Content-Type", "application/json");
-        res.write(JSON.stringify(message));
-        res.end();
-    },
-
-    send405Response: function(res, message){
-        res.statusCode = STATUS_CODES.METHOD_NOT_ALLOWED;
-        res.setHeader("Content-Type", "application/json");
-        res.write(JSON.stringify(message));
-        res.end();
-    },
-
-    send408Response: function(res, message){
-        res.statusCode = STATUS_CODES.REQUEST_TIMEOUT;
-        res.setHeader("Content-Type", "application/json");
-        res.write(JSON.stringify(message));
-        res.end();
-    },
-
-    send413Response: function(res, message){
-        res.statusCode = STATUS_CODES.PAYLOAD_TOO_LARGE;
-        res.setHeader("Content-Type", "application/json");
-        res.write(JSON.stringify(message));
-        res.end();
-    },
-
-    send415Response: function(res, message){
-        res.statusCode = STATUS_CODES.UNSUPPORTED_MEDIA_TYPE;
-        res.setHeader("Content-Type", "application/json");
-        res.write(JSON.stringify(message));
         res.end();
     },
 

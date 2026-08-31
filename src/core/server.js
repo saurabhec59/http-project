@@ -13,8 +13,6 @@ import http from 'http';
 import responseBuilder from './response-builder.js';
 import { addRoute, matchRoute} from './router.js';
 import {homeHandler, htmlHandler, jsonHandler, xmlHandler, debugRequestHandler, emptyResponseHandler, redirectToHomePageHandler, downloadTextFileHandler, urlNotFoundHandler, methodNotAllowedHandler, echoParsedBodyHandler} from './routes/general.js';
-import {getAllUsersHandler, createUserHandler, getUserByIdHandler, partialUpdateByIdHandler, fullUpdateByIdHandler, deleteUserHandler} from './routes/users.js';
-import {getAllProductsHandler, getProductByIdHandler, createProductHandler, updateProductHandler, deleteProductHandler} from './routes/products.js';
 import {parseBody, parseBodyMiddleware} from '../middleware/body-parser.js';
 import {setCorsHeaders} from '../middleware/cors.js';
 import {info, warn, error, debug} from '../utils/logger.js';
@@ -39,18 +37,7 @@ addRoute("GET", "/debug/request", null, debugRequestHandler);
 addRoute("GET", "/empty", null, emptyResponseHandler);
 addRoute("GET", "/redirect", null, redirectToHomePageHandler);
 addRoute("GET", "/download", null, downloadTextFileHandler);
-addRoute("GET", "/users", null, getAllUsersHandler);
-addRoute("POST", "/users", null, createUserHandler);
-addRoute("GET", "/users/:id", null, getUserByIdHandler); // #4......
-addRoute("PATCH", "/users/:id", null, partialUpdateByIdHandler);
-addRoute("PUT", "/users/:id", null, fullUpdateByIdHandler);
-addRoute("DELETE", "/users/:id", null, deleteUserHandler);
 addRoute("POST", "/echo", null, echoParsedBodyHandler);
-addRoute("GET", "/products", requireAuth, getAllProductsHandler);
-addRoute("GET", "/products/:id", null, getProductByIdHandler);
-addRoute("POST", "/products", null, createProductHandler);
-addRoute("PUT", "/products/:id", null, updateProductHandler);
-addRoute("DELETE", "/products/:id", null, deleteProductHandler);
 addRoute("POST", "/auth/register", null, createCustomerHandler);
 addRoute("GET", "/customers/me", requireAuth, getCustomerMeHandler);// for customers own details, this handler will use req.user.id from jwt payload
 addRoute("GET", "/customers/:id", requireAdminAuth, getCustomerByIdHandler);// for admins, this handler wil use req.params.id
@@ -209,6 +196,24 @@ And this approach servers the purpose of 'middleware' more meaningfully.
 Usually servers should not expose e.message directly to client if it's not your custom message like new Error("the error") because it may reveal sensitive info like paths etc to client,
 that's we sending custom message. Also all other error objects which are build in this file like unsupportedMediaType(e.message); or payloadTooLarge(e.message); If you notice these Errors in
 body-parser.js then these are custom errors like new Error("custom message"), so here 'e.message' is our written message.
+
+FROM USERS.JS
+#3......
+Usually after creating a new resource the status code is 201 which means "created" and also we should send the newly created resource in the response body, if not entire created object then atleast the location/path of
+that object. And that path should be send in response header "Location".
+When "Location" header is sent with status code 302 that means it is redirect path and client redirects to that path, but when "Location" header is sent with status code 201 then client do not redirect and for that it
+means the path of resource is here which he can use.
+So here we changed create() of store.js to return the newly created user object after saving it.
+After that the handler of this file will send that returned created user object in response body instead of sending all users. Also we added "Location" header in response with path.
+
+#4..... Header "Cache-Control"
+This header is used to control the caching behavior, usually it contains parameters/directives like "no-cache", "no-store", "max-age" ...separated by comma.
+This header can be sent by both server and client as well.
+ex: "Cache-Control: max-age=60"  ==> if this is sent by server then it means this response can be cached by client for 60s, lets say it was a browser and if withing 60s again user made same request then browser will
+not make new request to server, instead it will use that cached response. Use case: logo.png of website, mostly it do not change frequently so servers use to send "max-age" parameter.
+ex: "Cache-Control: no-store"  ==> if this is sent by server then it means this response should not be cached by client at all. Use case: login page, password reset page, payment page, etc.
+ex: "Cache-Control: no-cache"  ==> if this is sent by server then it means this response can be cached by client but before using that cached response, client should check with server whether it is still valid or not.
+There are many more parameters/directives of this header, we can explore them as per need..
 
 TO-DO: update all reference of error response builders like send415Response, send404Response, send408Response... with sendErrorResponse as done in this file.
 */
