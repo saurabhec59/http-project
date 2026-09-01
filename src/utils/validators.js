@@ -1,5 +1,9 @@
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function validateEmailFormat(email){
+    return EMAIL_REGEX.test(email);
+}
+
 function validateUpdateCustomerDetails(req){
     // checking if all required fields are present,to update needed fields are id, email, name, age, city
     if(!(req.body && req.body.email && req.body.name && req.body.age && req.body.city)){
@@ -10,7 +14,7 @@ function validateUpdateCustomerDetails(req){
         return false;
     }
     // checking email
-    if(!EMAIL_REGEX.test(req.body.email)){
+    if(!validateEmailFormat(req.body.email)){
         return false;
     }
     // checking max length of name & city & age > 0 && age <= 150
@@ -31,7 +35,7 @@ function validateCustomerDetailsHandler(req){
         return false;
     }
     // checking email
-    if(!EMAIL_REGEX.test(req.body.email)){
+    if(!validateEmailFormat(req.body.email)){
         return false;
     }
     // checking max length of name & city & age > 0 && age <= 150
@@ -45,4 +49,4 @@ function validateCustomerDetailsHandler(req){
     return true;
 }
 
-export { validateUpdateCustomerDetails, validateCustomerDetailsHandler };
+export { validateUpdateCustomerDetails, validateCustomerDetailsHandler, validateEmailFormat };

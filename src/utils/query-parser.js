@@ -106,7 +106,7 @@ function searchValidation(value){
     return true;
 }
 
-export { parseQueryString };
+export { parseQueryString, pageValidation, limitValidation, sortValidation, orderValidation };
 
 
 /*
