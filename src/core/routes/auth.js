@@ -9,6 +9,7 @@ import {parseCookies} from '../../middleware/cookies.js';
 import crypto from 'crypto';
 import {BadRequestError} from '../../errors/BadRequestError.js';
 import {UnauthorizedError} from '../../errors/UnauthorizedError.js';
+import {validateEmailFormat} from '../../utils/validators.js';
 
 async function loginCustomerHandler(req, res){
     // client will send email + password to login
@@ -64,8 +65,12 @@ function validateCustomerLoginDetailsHandler(req){
     if(typeof req.body.email !== "string" || typeof req.body.password !== "string"){
         return false;
     }
-    // checking email and password length, will improve later
-    if(req.body.email.trim().length < 8 || req.body.password.trim().length < 8){
+    // checking email
+    if(!validateEmailFormat(req.body.email)){
+        return false;
+    }
+    // checking password length
+    if(req.body.password.length < 8 || req.body.password.length > 15){
         return false;
     }
     return true;

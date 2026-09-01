@@ -1,4 +1,73 @@
-import {validateUpdateCustomerDetails, validateCustomerDetailsHandler} from '../../src/utils/validators.js';
+import {validateUpdateCustomerDetails, validateCustomerDetailsHandler, validateEmailFormat} from '../../src/utils/validators.js';
+
+// unit tests for validateEmailFormat
+describe("validateEmailFormat - Email Format Validation", function(){
+
+    describe("valid email formats", function(){
+        it("should return true for standard email", function(){
+            expect(validateEmailFormat("test@gmail.com")).toBe(true);
+        })
+
+        it("should return true for email with subdomain", function(){
+            expect(validateEmailFormat("user@mail.example.com")).toBe(true);
+        })
+
+        it("should return true for email with plus addressing", function(){
+            expect(validateEmailFormat("test+tag@gmail.com")).toBe(true);
+        })
+
+        it("should return true for email with numbers", function(){
+            expect(validateEmailFormat("user123@domain456.com")).toBe(true);
+        })
+
+        it("should return true for email with dots in username", function(){
+            expect(validateEmailFormat("first.last@company.com")).toBe(true);
+        })
+    })
+
+    describe("invalid email formats", function(){
+        it("should return false for email without @ symbol", function(){
+            expect(validateEmailFormat("testgmail.com")).toBe(false);
+        })
+
+        it("should return false for email without domain", function(){
+            expect(validateEmailFormat("test@")).toBe(false);
+        })
+
+        it("should return false for email without username", function(){
+            expect(validateEmailFormat("@gmail.com")).toBe(false);
+        })
+
+        it("should return false for email with spaces", function(){
+            expect(validateEmailFormat("test @gmail.com")).toBe(false);
+        })
+
+        it("should return false for empty string", function(){
+            expect(validateEmailFormat("")).toBe(false);
+        })
+
+        it("should return false for email without TLD", function(){
+            expect(validateEmailFormat("test@domain")).toBe(false);
+        })
+
+        it("should return false for multiple @ symbols", function(){
+            expect(validateEmailFormat("test@@gmail.com")).toBe(false);
+        })
+
+        it("should return false for non-string input (number)", function(){
+            expect(validateEmailFormat(123)).toBe(false);
+        })
+
+        it("should return false for non-string input (null)", function(){
+            expect(validateEmailFormat(null)).toBe(false);
+        })
+
+        it("should return false for non-string input (undefined)", function(){
+            expect(validateEmailFormat(undefined)).toBe(false);
+        })
+    })
+
+})
 
 // unit tests for validateCustomerDetailsHandler
 describe("validateCustomerDetailsHandler - Customer Registration Validation", function(){
