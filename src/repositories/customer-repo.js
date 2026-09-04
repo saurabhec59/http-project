@@ -1,25 +1,28 @@
 import {pool} from '../db/connection.js';
 
-async function findCustomerByEmail(email){
-    const result = await pool.query(
+async function findCustomerByEmail(email, client = null){ // if client is provided then use that client to execute query otherwise use pool to execute query
+    const executor = client || pool; // if client is provided then use that client to execute query otherwise use pool to execute query
+    const result = await executor.query(
         `SELECT id, email, name, age, city, role FROM customers
         WHERE email = $1`, [email]
     );
     return result.rows[0] || null; // if no customer found then result.rows[0] will be undefined so return null in that case
 }
 
-async function createCustomer(client, email, name, age, city){ // after creating we are asking psql to return the newly created customer data as well.
-    const result = await client.query(
+async function createCustomer(email, name, age, city, client = null){ // after creating we are asking psql to return the newly created customer data as well.
+    const executor = client || pool;
+    const result = await executor.query(
         `INSERT INTO customers (email, name, age, city)
         VALUES ($1, $2, $3, $4)
-        RETURNING id, email, name, age, city`, [email, name, age, city]
+        RETURNING id, email, name, age, city, role`, [email, name, age, city]
     );
     return result.rows[0];
 }
 
-async function getAllCustomers(sortBy, order, limit, offset){
-    const result = await pool.query(
-        `SELECT id, email, name, age, city FROM customers
+async function getAllCustomers(sortBy, order, limit, offset, client = null){
+    const executor = client || pool;
+    const result = await executor.query(
+        `SELECT id, email, name, age, city, role FROM customers
         ORDER BY ${sortBy} ${order}
         LIMIT $1
         OFFSET $2`, [limit, offset]
@@ -27,33 +30,37 @@ async function getAllCustomers(sortBy, order, limit, offset){
     return result.rows; // returns array of all customers
 }
 
-async function getAllCustomersCount(){
-    const result = await pool.query(
+async function getAllCustomersCount(client = null){
+    const executor = client || pool;
+    const result = await executor.query(
         `SELECT COUNT(*) FROM customers`
     );
     return Number(result.rows[0].count); // returns total number of customers in db
 }
 
-async function getCustomerById(id){
-    const result = await pool.query(
+async function getCustomerById(id, client = null){
+    const executor = client || pool;
+    const result = await executor.query(
         `SELECT id, email, name, age, city, role FROM customers
         WHERE id = $1`, [id]
     );
     return result.rows[0] || null; // if no customer found then result.rows[0] will be undefined so return null in that case
 }
 
-async function updateCustomer(id, email, name, age, city){
-    const result = await pool.query(
+async function updateCustomer(id, email, name, age, city, client = null){
+    const executor = client || pool;
+    const result = await executor.query(
         `UPDATE customers
         SET email = $2, name = $3, age = $4, city = $5
         WHERE id = $1
-        RETURNING id, email, name, age, city`, [id, email, name, age, city]
+        RETURNING id, email, name, age, city, role`, [id, email, name, age, city]
     )
     return result.rows[0] || null; // if no customer found then result.rows[0] will be undefined so return null in that case
 }
 
-async function deleteCustomer(id){
-    const result = await pool.query(
+async function deleteCustomer(id, client = null){
+    const executor = client || pool;
+    const result = await executor.query(
         `DELETE FROM customers
         WHERE id = $1`, [id]
     )

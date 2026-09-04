@@ -28,7 +28,7 @@ async function createCustomerHandler(req, res){
 
     // using transaction, wrapping in try-catch to handle any errors during transaction // <===> ALSO FOLLOW HOW RETURN IS HAPPENING FROM createCustomer() -> withTransaction() -> its's callback -> then how finally response is being sent
     const createdCustomer = await withTransaction(async function(client){
-        const newCustomer = await createCustomer(client, req.body.email, req.body.name, req.body.age, req.body.city);
+        const newCustomer = await createCustomer(req.body.email, req.body.name, req.body.age, req.body.city, client);
         await createCredentials(client, newCustomer.id, hashedObject.hashedPassword, hashedObject.salt);
         return newCustomer;
     });

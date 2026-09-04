@@ -5,7 +5,12 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "node --experimental-vm-modules node_modules/.bin/jest"
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "node --experimental-vm-modules node_modules/.bin/jest tests/unit",
+    "test:integration": "node --env-file=.env --experimental-vm-modules node_modules/.bin/jest tests/integration",
+    "test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch",
+    "test:coverage": "node  --env-file=.env --experimental-vm-modules node_modules/.bin/jest tests/unit tests/integration --coverage",
+    "start": "node --env-file=.env src/core/server.js"
   },
   "keywords": [],
   "author": "",
