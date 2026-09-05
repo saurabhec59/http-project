@@ -61,7 +61,7 @@ jobs:
       # Run all tests (unit + integration)
       # Environment variables are passed to the Node.js process so tests can connect to PostgreSQL
       - name: Run all tests
-        run: npm test
+        run: npm run test:ci
         env:
           PGHOST: localhost                    # PostgreSQL host
           PGPORT: 5432                         # PostgreSQL port
