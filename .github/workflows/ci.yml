@@ -13,6 +13,33 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    # PostgreSQL Service Container
+    # This starts a PostgreSQL Docker container that runs alongside the job
+    # The container is automatically destroyed after the job completes
+    services:
+      postgres:
+        # Official PostgreSQL Docker image version 16
+        image: postgres:16
+
+        # Environment variables to configure the PostgreSQL container
+        env:
+          POSTGRES_USER: postgres              # Database user
+          POSTGRES_PASSWORD: postgres          # Database password
+          POSTGRES_DB: http_project_test       # Database name (auto-created)
+
+        # Map container port 5432 to host port 5432
+        # This makes PostgreSQL accessible at localhost:5432 from the job
+        ports:
+          - 5432:5432
+
+        # Health check options to ensure PostgreSQL is ready before running tests
+        # pg_isready checks if PostgreSQL is accepting connections
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -25,5 +52,52 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm run test:unit
+      # Load database schema into the PostgreSQL container
+      # This creates all tables (customers, customer_credentials, customer_refresh_tokens)
+      - name: Load database schema
+        run: |
+          PGPASSWORD=postgres psql -h localhost -U postgres -d http_project_test -f schema.sql
+
+      # Run all tests (unit + integration)
+      # Environment variables are passed to the Node.js process so tests can connect to PostgreSQL
+      - name: Run all tests
+        run: npm run test:ci
+        env:
+          PGHOST: localhost                    # PostgreSQL host
+          PGPORT: 5432                         # PostgreSQL port
+          PGTESTDATABASE: http_project_test    # Database name
+          PGUSER: postgres                     # Database user
+          PGPASSWORD: postgres                 # Database password
+          JWT_SECRET: test_jwt_secret_for_ci   # JWT secret for token tests
+
+
+#***********************************************************************************************************************
+# Let's see how we are configuring the PostgreSQL db in this CI workflow.
+#   Our node server needs to connect to a PostgreSQL.
+#     Node provides pg library to connect to PostgreSQL using pg.Pool or pg.Client which needs:
+#        - host
+#        - port
+#        - database
+#        - user
+#        - password
+#
+#     In Local we installed db -> create user & password -> create db -> create schema of db
+#     And passed those credentials to node server using .env file (in connections.js file).
+#
+#     In CI workflow on the same runner machine we need ->
+#        - db (host will be localhost) --> image: postgres:16 <-- this line will create a docker container with postgres:16 image and run it on the same runner machine
+#        - port (container port mapped to runner machine), --> - 5432:5432  <-- this line will map container port 5432 to runner machine port 5432
+#        - For user, password, db name it is done as :
+#          env:
+#            POSTGRES_USER: postgres              # Database user
+#            POSTGRES_PASSWORD: postgres          # Database password
+#            POSTGRES_DB: http_project_test      # Database name
+#        - same schema for db --> it is done as:
+#            run: |
+#              PGPASSWORD=postgres psql -h localhost -U postgres -d http_project_test -f schema.sql
+#
+#     Now we have a PostgreSQL db with same schema on the same runner machine
+#     But our node server (pg.pool or pg.client) needs credentials like host, port, db name, user, password to connect to this db.
+#     And if we observe either our connection.js (for dev) or connection.test.js (for test) file, we are using process.env to get those credentials.
+#     Since .env file is not commited (and should never be) to git so we are passing those credentials as environment variables in the workflow file itself.
+#     so that node server can access those credentials using process.env and connect to the PostgreSQL db running on the same runner machine.
