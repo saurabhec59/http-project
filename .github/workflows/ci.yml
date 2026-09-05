@@ -65,7 +65,7 @@ jobs:
         env:
           PGHOST: localhost                    # PostgreSQL host
           PGPORT: 5432                         # PostgreSQL port
-          PGDATABASE: http_project_test        # Database name
+          PGTESTDATABASE: http_project_test    # Database name
           PGUSER: postgres                     # Database user
           PGPASSWORD: postgres                 # Database password
           JWT_SECRET: test_jwt_secret_for_ci   # JWT secret for token tests

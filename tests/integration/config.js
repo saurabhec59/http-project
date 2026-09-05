@@ -19,7 +19,7 @@ The database remains clean after every test run.
 const testPool = new pg.Pool({
     host: process.env.PGHOST || 'localhost',
     port: process.env.PGPORT || 5432,
-    database: 'server1_test', // TEST DATABASE
+    database: process.env.PGTESTDATABASE || 'http_project_test',
     user: process.env.PGUSER,
     password: process.env.PGPASSWORD,
 })
