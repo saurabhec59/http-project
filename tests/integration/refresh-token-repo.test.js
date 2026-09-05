@@ -1,4 +1,4 @@
-import {testPool} from './config.js';
+import {pool} from '../../src/db/connection.js';
 import {createCustomer} from '../../src/repositories/customer-repo.js';
 import {createRefreshToken, findHashedRefreshToken, deleteRefreshToken} from '../../src/repositories/refresh-token-repo.js';
 
@@ -15,7 +15,7 @@ describe("refresh-token-repo.js - Integration Tests", function(){
 
     describe("createRefreshToken", function(){
         it("should create refresh token and return token object with all fields", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -40,7 +40,7 @@ describe("refresh-token-repo.js - Integration Tests", function(){
         })
 
         it("should create token with correct expiry date", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -59,7 +59,7 @@ describe("refresh-token-repo.js - Integration Tests", function(){
         })
 
         it("should allow multiple tokens for same customer", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -82,7 +82,7 @@ describe("refresh-token-repo.js - Integration Tests", function(){
 
     describe("findHashedRefreshToken", function(){
         it("should find token by hash when it exists", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -104,7 +104,7 @@ describe("refresh-token-repo.js - Integration Tests", function(){
         })
 
         it("should return null when token hash does not exist", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -119,7 +119,7 @@ describe("refresh-token-repo.js - Integration Tests", function(){
         })
 
         it("should find correct token among multiple tokens", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -145,7 +145,7 @@ describe("refresh-token-repo.js - Integration Tests", function(){
 
     describe("deleteRefreshToken", function(){
         it("should delete token and return rowCount of 1", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -165,7 +165,7 @@ describe("refresh-token-repo.js - Integration Tests", function(){
         })
 
         it("should return rowCount of 0 when token does not exist", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -180,7 +180,7 @@ describe("refresh-token-repo.js - Integration Tests", function(){
         })
 
         it("should not find token after deletion", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -206,7 +206,7 @@ describe("refresh-token-repo.js - Integration Tests", function(){
 
     // Close pool after all tests
     afterAll(async function(){
-        await testPool.end();
+        await pool.end();
     });
 
 })

@@ -1,4 +1,4 @@
-import {testPool} from './config.js';
+import {pool} from '../../src/db/connection.js';
 import {createCustomer, findCustomerByEmail, getCustomerById, getAllCustomers, getAllCustomersCount, updateCustomer, deleteCustomer} from '../../src/repositories/customer-repo.js';
 
 /*
@@ -26,7 +26,7 @@ describe("customer-repo.js - Integration Tests", function(){
 
     describe("createCustomer", function(){
         it("should create a new customer and return customer object", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -48,7 +48,7 @@ describe("customer-repo.js - Integration Tests", function(){
         })
 
         /*it("should create customer with nullable fields (age, city)", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -66,7 +66,7 @@ describe("customer-repo.js - Integration Tests", function(){
         })
 
         it("should auto-increment id for multiple customers", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -84,7 +84,7 @@ describe("customer-repo.js - Integration Tests", function(){
 
     describe("findCustomerByEmail", function(){
         it("should find customer by email when exists", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -108,7 +108,7 @@ describe("customer-repo.js - Integration Tests", function(){
         })
 
         it("should return null when customer with email does not exist", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -123,7 +123,7 @@ describe("customer-repo.js - Integration Tests", function(){
         })
 
         it("should find correct customer among multiple customers", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -146,7 +146,7 @@ describe("customer-repo.js - Integration Tests", function(){
 
     describe("getCustomerById", function(){
         it("should find customer by id when exists", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -167,7 +167,7 @@ describe("customer-repo.js - Integration Tests", function(){
         })
 
         it("should return null when customer with id does not exist", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -184,7 +184,7 @@ describe("customer-repo.js - Integration Tests", function(){
 
     describe("getAllCustomers", function(){
         it("should return empty array when no customers exist", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -199,7 +199,7 @@ describe("customer-repo.js - Integration Tests", function(){
         })
 
         it("should return all customers with correct sorting", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -221,7 +221,7 @@ describe("customer-repo.js - Integration Tests", function(){
         })
 
         it("should return customers sorted by age descending", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -242,7 +242,7 @@ describe("customer-repo.js - Integration Tests", function(){
         })
 
         it("should respect limit parameter", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -262,7 +262,7 @@ describe("customer-repo.js - Integration Tests", function(){
         })
 
         it("should respect offset parameter (pagination)", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -286,7 +286,7 @@ describe("customer-repo.js - Integration Tests", function(){
 
     describe("getAllCustomersCount", function(){
         it("should return 0 when no customers exist", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -301,7 +301,7 @@ describe("customer-repo.js - Integration Tests", function(){
         })
 
         it("should return correct count of customers", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -322,7 +322,7 @@ describe("customer-repo.js - Integration Tests", function(){
 
     describe("updateCustomer", function(){
         it("should update customer details and return updated customer", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
                 // create customer first
@@ -344,7 +344,7 @@ describe("customer-repo.js - Integration Tests", function(){
         })
 
         it("should return null when customer to update does not exist", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -359,7 +359,7 @@ describe("customer-repo.js - Integration Tests", function(){
         })
 
         it("should persist changes when queried again", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -381,7 +381,7 @@ describe("customer-repo.js - Integration Tests", function(){
 
     describe("deleteCustomer", function(){
         it("should delete customer and return rowCount of 1", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
                 // create customer first
@@ -398,7 +398,7 @@ describe("customer-repo.js - Integration Tests", function(){
         })
 
         it("should return rowCount of 0 when customer does not exist", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -413,7 +413,7 @@ describe("customer-repo.js - Integration Tests", function(){
         })
 
         it("should not find customer after deletion", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
                 // create customer first

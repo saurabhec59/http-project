@@ -1,4 +1,4 @@
-import {testPool} from './config.js';
+import {pool} from '../../src/db/connection.js';
 import {createCustomer} from '../../src/repositories/customer-repo.js';
 import {createCredentials, findCredentialsByCustomerId} from '../../src/repositories/customer-cred-repo.js';
 
@@ -14,7 +14,7 @@ describe("customer-cred-repo.js - Integration Tests", function(){
 
     describe("createCredentials", function(){
         it("should create credentials and return credential object", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -39,7 +39,7 @@ describe("customer-cred-repo.js - Integration Tests", function(){
 
     describe("findCredentialsByCustomerId", function(){
         it("should find credentials when they exist", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -60,7 +60,7 @@ describe("customer-cred-repo.js - Integration Tests", function(){
         })
 
         it("should return null when credentials do not exist", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -75,7 +75,7 @@ describe("customer-cred-repo.js - Integration Tests", function(){
         })
 
         it("should return null when customer exists but has no credentials", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -93,7 +93,7 @@ describe("customer-cred-repo.js - Integration Tests", function(){
         })
 
         it("should retrieve correct credentials for specific customer among multiple", async function(){
-            const client = await testPool.connect();
+            const client = await pool.connect();
             try {
                 await client.query('BEGIN');
 
@@ -122,7 +122,7 @@ describe("customer-cred-repo.js - Integration Tests", function(){
 
     // Close pool after all tests
     afterAll(async function(){
-        await testPool.end();
+        await pool.end();
     });
 
 })

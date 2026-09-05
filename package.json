@@ -17,6 +17,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "jest": {
+    "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"]
+  },
   "dependencies": {
     "fast-xml-parser": "^5.10.1",
     "jsonwebtoken": "^9.0.3",
