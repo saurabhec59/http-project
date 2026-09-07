@@ -6,8 +6,10 @@
   "type": "module",
   "scripts": {
     "test": "npm run test:unit && npm run test:integration",
+    "test:ci": "npm run test:unit && npm run test:integration:ci",
     "test:unit": "node --experimental-vm-modules node_modules/.bin/jest tests/unit",
     "test:integration": "node --env-file=.env --experimental-vm-modules node_modules/.bin/jest tests/integration",
+    "test:integration:ci": "node --experimental-vm-modules node_modules/.bin/jest tests/integration",
     "test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch",
     "test:coverage": "node  --env-file=.env --experimental-vm-modules node_modules/.bin/jest tests/unit tests/integration --coverage",
     "start": "node --env-file=.env src/core/server.js"
@@ -15,12 +17,16 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "jest": {
+    "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"]
+  },
   "dependencies": {
     "fast-xml-parser": "^5.10.1",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.23.0"
   },
   "devDependencies": {
-    "jest": "^30.4.2"
+    "jest": "^30.4.2",
+    "supertest": "^7.2.2"
   }
 }

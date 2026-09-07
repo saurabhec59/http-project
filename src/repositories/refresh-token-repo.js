@@ -1,16 +1,18 @@
 import {pool} from '../db/connection.js';
 
-async function createRefreshToken(customer_id, token_hash, expires_at){
-    const result = await pool.query(
+async function createRefreshToken(customer_id, token_hash, expires_at, client = null){
+    const executor = client || pool;
+    const result = await executor.query(
         `INSERT INTO customer_refresh_tokens(customer_id, token_hash, expires_at)
          VALUES($1, $2, $3)
-         RETURNING id, customer_id, expires_at, created_at`, [customer_id, token_hash, expires_at]
+         RETURNING id, customer_id, token_hash, expires_at, created_at`, [customer_id, token_hash, expires_at]
     );
     return result.rows[0];
 }
 
-async function findHashedRefreshToken(token_hash){
-    const result = await pool.query(
+async function findHashedRefreshToken(token_hash, client = null){
+    const executor = client || pool;
+    const result = await executor.query(
         `SELECT customer_id, expires_at
         FROM customer_refresh_tokens
         WHERE token_hash = $1`, [token_hash]
@@ -18,8 +20,9 @@ async function findHashedRefreshToken(token_hash){
     return result.rows[0] || null; // if no token found then result.rows[0] will be undefined so return null in that case
 }
 
-async function deleteRefreshToken(token_hash){
-    const result = await pool.query(
+async function deleteRefreshToken(token_hash, client = null){
+    const executor = client || pool;
+    const result = await executor.query(
     `DELETE FROM customer_refresh_tokens
     WHERE token_hash = $1`, [token_hash]
     );
