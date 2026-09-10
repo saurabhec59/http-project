@@ -3,6 +3,7 @@ import app from '../../../src/core/app.js';
 import {pool} from '../../../src/db/connection.js';
 import {findCustomerByEmail, createCustomer} from '../../../src/repositories/customer-repo.js';
 import {findCredentialsByCustomerId} from '../../../src/repositories/customer-cred-repo.js';
+import {createAuthenticatedTestUser} from '../../helpers/auth-helper.js';
 
 describe("POST /auth/register", function(){
     describe("successful registration", function(){
@@ -136,4 +137,87 @@ describe("POST /auth/register", function(){
 
         })
     })
+})
+
+describe("GET /customers/me", function(){
+
+    describe("successful retrieval of self details", function(){
+        it("should return self details when correct JWT token is send", async function(){
+            const client = await pool.connect();
+            let customerId;
+            try{
+                // get an authenticated test user before making the request for /customers/me
+                const user = await createAuthenticatedTestUser(client);
+                customerId = user.customerId; // store the created customer id for cleanup
+                const response = await request(app)
+                    .get("/customers/me")
+                    .set("Authorization", `Bearer ${user.jwtToken}`);
+
+                expect(response.status).toBe(200);
+                expect(response.body).toMatchObject({
+                    id: user.customerId,
+                    email: user.email,
+                    name: user.name,
+                    age: user.age,
+                    city: user.city,
+                    role: null
+                });
+            }finally{
+                // Cleanup: Delete test data (CASCADE will delete credentials and refresh_tokens)
+                if (customerId) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customerId]);
+                }
+                client.release();
+            }
+        })
+    })
+
+    describe("unsuccessful retrieval of self details", function(){
+        it("should return 401 unauthorized when Authorization header is missing", async function(){
+
+            const response = await request(app)
+                .get("/customers/me");
+
+            expect(response.status).toBe(401);
+        })
+
+        it("should return 401 unauthorized when JWT token is missing", async function(){
+            const response = await request(app)
+                .get("/customers/me")
+                .set("Authorization", "Bearer "); // empty
+
+            expect(response.status).toBe(401);
+        })
+
+        it("should return 401 unauthorized when scheme is not Bearer", async function(){
+            const client = await pool.connect();
+            let customerId;
+            try{
+                // get an authenticated test user before making the request for /customers/me
+                const user = await createAuthenticatedTestUser(client);
+                customerId = user.customerId; // store the created customer id for cleanup
+                const response = await request(app)
+                    .get("/customers/me")
+                    .set("Authorization", `Basic ${user.jwtToken}`); // <<<=== wrong scheme, should be Bearer
+
+                expect(response.status).toBe(401);
+
+            }finally{
+                // Cleanup: Delete test data (CASCADE will delete credentials and refresh_tokens)
+                if (customerId) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customerId]);
+                }
+                client.release();
+            }
+        })
+
+        it("should return 401 unauthorized when JWT token is incorrect", async function(){
+            const response = await request(app)
+                .get("/customers/me")
+                .set("Authorization", "Bearer invalid.Bearer.token");
+
+            expect(response.status).toBe(401);
+        })
+    })
+
 })
