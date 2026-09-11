@@ -57,8 +57,14 @@ async function getCustomerByIdHandler(req, res){
     // This requires auth and & if jwt access auth is successfull then requireAuth() adds req.user = payload;
     // this is the payload of jwt access token like {id: ..., role: ..., exp: ..} & we can extract id from here as well.
     // ***** This is admin route, and admin can get any customer by id, so we will use req.params.id extracted and inserted by mathRoute() here instead of req.user.id ******
-    // currently requireAuth() do not have any admin check, so till that is not implemented this should not be used.
-    const customer = await getCustomerById(req.params.id); // we can use req.params.id as well because matchRoute() parses params (:)  as well.
+
+    // Validate ID format before querying database because router will simply match the route and  may add like req.params.id = "abc"
+    const id = req.params.id;
+    if (!id || isNaN(id) || parseInt(id) <= 0) {
+        throw new BadRequestError("Invalid customer ID format");
+    }
+
+    const customer = await getCustomerById(parseInt(id)); // Parse to integer after validation
     if(customer === null){
         // means user with this id does not exist so send 404 not found
         throw new NotFoundError("Resource not found");
