@@ -221,3 +221,161 @@ describe("GET /customers/me", function(){
     })
 
 })
+
+describe("GET /customers/:id", function(){
+
+    describe("successful retrieval of customer details by admin", function(){
+        it("should return customer details when JWT token is valid and role is admin", async function(){
+
+            const client = await pool.connect();
+            let customer1Id, customer2Id;
+            try{
+                // get an authenticated test user with role = 'admin' before making the request
+                const adminUser = await createAuthenticatedTestUser(client, {role: 'admin'});
+                customer1Id = adminUser.customerId; // store the created customer id for cleanup
+
+                // create another customer to get details of
+                const user2 = await createAuthenticatedTestUser(client);
+                customer2Id = user2.customerId;
+
+                // admin user will make request with his jwt token to get details of customer2
+                const response = await request(app)
+                    .get(`/customers/${customer2Id}`)  // "customers/:id"
+                    .set("Authorization", `Bearer ${adminUser.jwtToken}`)
+
+                expect(response.status).toBe(200);
+                expect(response.body).toMatchObject({
+                    id: user2.customerId,
+                    email: user2.email,
+                    name: user2.name,
+                    age: user2.age,
+                    city: user2.city,
+                    role: null
+                });
+            }finally{
+                // Cleanup: Delete test data (CASCADE will delete credentials and refresh_tokens)
+                if (customer1Id) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customer1Id]);
+                }
+                if (customer2Id) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customer2Id]);
+                }
+                client.release();
+            }
+
+        })
+    })
+
+    describe("Unsuccessful retrieval of customer details by admin", function(){
+        it("should return 401 unauthorized when Authorization header is missing", async function(){
+
+            const response = await request(app)
+                .get("/customers/1"); // any id
+
+            expect(response.status).toBe(401);
+        })
+
+        it("should return 401 unauthorized when JWT token is missing", async function(){
+            const response = await request(app)
+                .get("/customers/1") // any id
+                .set("Authorization", "Bearer "); // empty
+
+            expect(response.status).toBe(401);
+        })
+
+        it("should return 401 unauthorized when scheme is not Bearer", async function(){
+            const client = await pool.connect();
+            let customerId;
+            try{
+                // get an authenticated test user before making the request for /customers/me
+                const adminUser = await createAuthenticatedTestUser(client, {role: 'admin'});
+                customerId = adminUser.customerId; // store the created customer id for cleanup
+                const response = await request(app)
+                    .get("/customers/1") // any id
+                    .set("Authorization", `Basic ${adminUser.jwtToken}`); // <<<=== wrong scheme, should be Bearer
+
+                expect(response.status).toBe(401);
+
+            }finally{
+                // Cleanup: Delete test data (CASCADE will delete credentials and refresh_tokens)
+                if (customerId) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customerId]);
+                }
+                client.release();
+            }
+        })
+
+        it("should return 401 unauthorized when JWT token is incorrect", async function(){
+            const response = await request(app)
+                .get("/customers/1")
+                .set("Authorization", "Bearer invalid.Bearer.token");
+
+            expect(response.status).toBe(401);
+        })
+
+        it("should return 404 not found when user does not exist", async function(){
+            const client = await pool.connect();
+            let customerId;
+            try{
+                // get an authenticated test user before making the request for /customers/me
+                const adminUser = await createAuthenticatedTestUser(client, {role: 'admin'});
+                customerId = adminUser.customerId; // store the created customer id for cleanup
+                const response = await request(app)
+                    .get("/customers/999999") // any id which does not exist
+                    .set("Authorization", `Bearer ${adminUser.jwtToken}`);
+
+                expect(response.status).toBe(404);
+
+            }finally{
+                // Cleanup: Delete test data (CASCADE will delete credentials and refresh_tokens)
+                if (customerId) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customerId]);
+                }
+                client.release();
+            }
+        })
+
+        // no need to create a second user because during requireAdminAuth() itself the role will be checked and forbidden will be returned.
+        it("should return 403 forbidden when JWT token is valid but role is not admin", async function(){
+            const client = await pool.connect();
+            let customerId;
+            try{
+                // get an authenticated test user but role should NOT BE 'admin'
+                const user = await createAuthenticatedTestUser(client); // role is not admin
+                customerId = user.customerId; // store the created customer id for cleanup
+
+                const response = await request(app)
+                    .get("/customers/1") // any id
+                    .set("Authorization", `Bearer ${user.jwtToken}`); // valid jwt token but role is not admin
+
+                expect(response.status).toBe(403);
+            }finally{
+                // Cleanup: Delete test data (CASCADE will delete credentials and refresh_tokens)
+                if (customerId) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customerId]);
+                }
+                client.release();
+            }
+        })
+
+        it("should return 400 bad request when customer id format is invalid", async function(){
+            const client = await pool.connect();
+            let customerId;
+            try{
+                const adminUser = await createAuthenticatedTestUser(client, {role: 'admin'});
+                customerId = adminUser.customerId;
+
+                const response = await request(app)
+                    .get("/customers/invalid_id") // invalid id format
+                    .set("Authorization", `Bearer ${adminUser.jwtToken}`);
+
+                expect(response.status).toBe(400);
+            }finally{
+                if (customerId) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customerId]);
+                }
+                client.release();
+            }
+        })
+    })
+})

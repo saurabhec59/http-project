@@ -45,6 +45,12 @@ async function createAuthenticatedTestUser(client, overrides = {}) {
         const customer = await createCustomer(userData.email, userData.name, userData.age, userData.city, client);
         customerId = customer.id;
 
+        // set role as admin if overrides.role is provided, otherwise keep it null
+        // remember our createCustomer() do not set role, it is null by default.
+        if (overrides.role && overrides.role === "admin") {
+            await client.query('UPDATE customers SET role = $1 WHERE id = $2', [overrides.role, customerId]);
+        }
+
         const hashed = hashPassword(userData.password);
         // create credentials
         await createCredentials(customer.id, hashed.hashedPassword, hashed.salt, client);
