@@ -100,6 +100,14 @@ async function updateCustomerMeHandler(req, res){
     if((!validateUpdateCustomerDetails(req))){// id in jwt should match with requested 'id' in body to be updated becuase it's not admin request
         throw new BadRequestError("Invalid customer details");
     }
+
+    // check that email should not be taken by other customer
+    const existingCustomer = await findCustomerByEmail(req.body.email);
+    if(existingCustomer !== null && existingCustomer.id !== req.user.id){
+        // user with same email already exists, send 409 Conflict response
+        throw new ConflictError("Customer with email " + req.body.email + " already exists");
+    }
+
     // USING req.user.id BECAUSE it's a self update request , Also sequence should be id, email, name, age, city in argument
     const result = await updateCustomer(req.user.id, req.body.email, req.body.name, req.body.age, req.body.city);
     // in case customer did not exist, result will be null, so we will send 404 not found
@@ -115,6 +123,14 @@ async function updateCustomerHandler(req, res){
     if(!validateUpdateCustomerDetails(req)){
         throw new BadRequestError("Invalid customer details");
     }
+
+    // check that email should not be taken by other customer
+    const existingCustomer = await findCustomerByEmail(req.body.email);
+    if(existingCustomer !== null && existingCustomer.id !== parseInt(req.params.id)){ // USING req.params.id BECAUSE admin is not updating his own account. for own update the endpoint is different and it uses req.user.id <== self update
+        // user with same email already exists, send 409 Conflict response
+        throw new ConflictError("Customer with email " + req.body.email + " already exists");
+    }
+
     // USING req.params.id BECAUSE admin can update any customer , Also sequence should be id, email, name, age, city in argument
     const result = await updateCustomer(req.params.id, req.body.email, req.body.name, req.body.age, req.body.city);
     // in case customer did not exist, result will be null, so we will send 404 not found
