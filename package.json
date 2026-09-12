@@ -8,10 +8,10 @@
     "test": "npm run test:unit && npm run test:integration",
     "test:ci": "npm run test:unit && npm run test:integration:ci",
     "test:unit": "node --experimental-vm-modules node_modules/.bin/jest tests/unit",
-    "test:integration": "node --env-file=.env --experimental-vm-modules node_modules/.bin/jest tests/integration",
-    "test:integration:ci": "node --experimental-vm-modules node_modules/.bin/jest tests/integration",
+    "test:integration": "node --env-file=.env --experimental-vm-modules node_modules/.bin/jest tests/integration --runInBand",
+    "test:integration:ci": "node --experimental-vm-modules node_modules/.bin/jest tests/integration --runInBand",
     "test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch",
-    "test:coverage": "node  --env-file=.env --experimental-vm-modules node_modules/.bin/jest tests/unit tests/integration --coverage",
+    "test:coverage": "node  --env-file=.env --experimental-vm-modules node_modules/.bin/jest tests/unit tests/integration --coverage --runInBand",
     "start": "node --env-file=.env src/core/server.js"
   },
   "keywords": [],
