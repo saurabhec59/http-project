@@ -379,3 +379,505 @@ describe("GET /customers/:id", function(){
         })
     })
 })
+
+describe("GET /customers", function(){
+
+    describe("successful retrieval of all customers by admin", function(){
+
+        it("should return all 5 customers when JWT token is valid and role is admin", async function(){
+            const client = await pool.connect();
+            let adminId;
+            let customer1Id, customer2Id, customer3Id, customer4Id, customer5Id;
+
+            try{
+                // create 5 customers
+                const customer1 = await createCustomer(`testuser1_${Date.now()}@gmail.com`, "Test User 1", 30, "Test City", client);
+                customer1Id = customer1.id;
+                const customer2 = await createCustomer(`testuser2_${Date.now()}@gmail.com`, "Test User 2", 30, "Test City", client);
+                customer2Id = customer2.id;
+                const customer3 = await createCustomer(`testuser3_${Date.now()}@gmail.com`, "Test User 3", 30, "Test City", client);
+                customer3Id = customer3.id;
+                const customer4 = await createCustomer(`testuser4_${Date.now()}@gmail.com`, "Test User 4", 30, "Test City", client);
+                customer4Id = customer4.id;
+                const customer5 = await createCustomer(`testuser5_${Date.now()}@gmail.com`, "Test User 5", 30, "Test City", client);
+                customer5Id = customer5.id;
+
+                // get an authenticated test user with 'admin' role
+                const adminUser = await createAuthenticatedTestUser(client, {role: 'admin'});
+                adminId = adminUser.customerId;
+
+                const response = await request(app)
+                    .get("/customers")
+                    .set("Authorization", `Bearer ${adminUser.jwtToken}`);
+
+                /*
+                    This endpoint returns an object in response as:
+                    const data = {
+                            data: customers,
+                            page: req.query.pagination.page,
+                            limit: limit,
+                            count : customers.length, // this is the number of rows returned by psql, not total rows in db, for that we need to do another query to count total rows in db.
+                            total: totalCustomers, // this is the total number of rows in db of customers table
+                            totalPages: Math.ceil(totalCustomers / limit) // this is the total number of pages available in db.
+                    }
+
+                    // here customers is an array of customer objects, so response.body.data will be an array of customer objects.
+                */
+                expect(response.status).toBe(200);
+                expect(response.body).toHaveProperty("data");
+                expect(response.body).toHaveProperty("page");
+                expect(response.body).toHaveProperty("limit");
+                expect(response.body).toHaveProperty("count");
+                expect(response.body).toHaveProperty("total");
+                expect(response.body).toHaveProperty("totalPages");
+                expect(response.body.data).toBeInstanceOf(Array); // db returns array of customers
+                expect(response.body.data.length).toBeGreaterThanOrEqual(5); // at least 5 customers should be returned
+                // check these are the customers we created
+                // extract ids of customers in response.body.data
+                const arrayOfReturnedIds = response.body.data.map(function(c){ // this will loop over each customer and extract the id.
+                    return c.id;
+                })
+                // check if these ids are what we created
+                expect(arrayOfReturnedIds).toEqual(expect.arrayContaining([customer1Id, customer2Id, customer3Id, customer4Id, customer5Id]));
+            }finally{
+                // Cleanup: Delete test data (CASCADE will delete credentials and refresh_tokens)
+                if (customer1Id) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customer1Id]);
+                }
+                if (customer2Id) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customer2Id]);
+                }
+                if (customer3Id) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customer3Id]);
+                }
+                if (customer4Id) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customer4Id]);
+                }
+                if (customer5Id) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customer5Id]);
+                }
+                if (adminId) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [adminId]);
+                }
+                client.release();
+            }
+        })
+
+        it("should return only 3 customers & sorted in descending order by 'age' when JWT token is valid and role is admin", async function(){
+            const client = await pool.connect();
+            let adminId;
+            let customer1Id, customer2Id, customer3Id, customer4Id, customer5Id;
+
+            try{
+                // create 5 customers
+                const customer1 = await createCustomer(`testuser1_${Date.now()}@gmail.com`, "Test User 1", 30, "Test City", client);
+                customer1Id = customer1.id;
+                const customer2 = await createCustomer(`testuser2_${Date.now()}@gmail.com`, "Test User 2", 40, "Test City", client);
+                customer2Id = customer2.id;
+                const customer3 = await createCustomer(`testuser3_${Date.now()}@gmail.com`, "Test User 3", 50, "Test City", client);
+                customer3Id = customer3.id;
+                const customer4 = await createCustomer(`testuser4_${Date.now()}@gmail.com`, "Test User 4", 60, "Test City", client);
+                customer4Id = customer4.id;
+                const customer5 = await createCustomer(`testuser5_${Date.now()}@gmail.com`, "Test User 5", 70, "Test City", client);
+                customer5Id = customer5.id;
+
+                // get an authenticated test user with 'admin' role
+                const adminUser = await createAuthenticatedTestUser(client, {role: 'admin'});
+                adminId = adminUser.customerId;
+
+                const response = await request(app)
+                    .get("/customers?sort=age&order=desc&limit=3") // sort by age in descending order and limit to 3 customers
+                    .set("Authorization", `Bearer ${adminUser.jwtToken}`);
+
+                /*
+                    This endpoint returns an object in response as:
+                    const data = {
+                            data: customers,
+                            page: req.query.pagination.page,
+                            limit: limit,
+                            count : customers.length, // this is the number of rows returned by psql, not total rows in db, for that we need to do another query to count total rows in db.
+                            total: totalCustomers, // this is the total number of rows in db of customers table
+                            totalPages: Math.ceil(totalCustomers / limit) // this is the total number of pages available in db.
+                    }
+
+                    // here customers is an array of customer objects, so response.body.data will be an array of customer objects.
+                */
+                expect(response.status).toBe(200);
+                expect(response.body).toHaveProperty("data");
+                expect(response.body).toHaveProperty("page");
+                expect(response.body).toHaveProperty("limit");
+                expect(response.body).toHaveProperty("count");
+                expect(response.body).toHaveProperty("total");
+                expect(response.body).toHaveProperty("totalPages");
+                expect(response.body.data).toBeInstanceOf(Array); // db returns array of customers
+                expect(response.body.data.length).toEqual(3); // at least 5 customers should be returned
+                // check these are the customers we created
+                // extract ids of customers in response.body.data
+                const arrayOfReturnedIds = response.body.data.map(function(c){ // this will loop over each customer and extract the id.
+                    return c.id;
+                })
+                // check if these ids are what we created in the sorted order
+                expect(arrayOfReturnedIds).toEqual([ customer5Id, customer4Id, customer3Id]);
+            }finally{
+                // Cleanup: Delete test data (CASCADE will delete credentials and refresh_tokens)
+                if (customer1Id) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customer1Id]);
+                }
+                if (customer2Id) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customer2Id]);
+                }
+                if (customer3Id) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customer3Id]);
+                }
+                if (customer4Id) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customer4Id]);
+                }
+                if (customer5Id) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customer5Id]);
+                }
+                if (adminId) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [adminId]);
+                }
+                client.release();
+            }
+        })
+
+    })
+
+    describe("Unsuccessful retrieval of All customers by admin", function(){
+        it("should return 401 unauthorized when Authorization header is missing", async function(){
+
+            const response = await request(app)
+                .get("/customers");
+
+            expect(response.status).toBe(401);
+        })
+
+        it("should return 401 unauthorized when JWT token is missing", async function(){
+            const response = await request(app)
+                .get("/customers")
+                .set("Authorization", "Bearer "); // empty
+
+            expect(response.status).toBe(401);
+        })
+
+        it("should return 401 unauthorized when scheme is not Bearer", async function(){
+            const client = await pool.connect();
+            let customerId;
+            try{
+                // get an authenticated test user before making the request
+                const adminUser = await createAuthenticatedTestUser(client, {role: 'admin'});
+                customerId = adminUser.customerId; // store the created customer id for cleanup
+                const response = await request(app)
+                    .get("/customers") // any id
+                    .set("Authorization", `Basic ${adminUser.jwtToken}`); // <<<=== wrong scheme, should be Bearer
+
+                expect(response.status).toBe(401);
+
+            }finally{
+                // Cleanup: Delete test data (CASCADE will delete credentials and refresh_tokens)
+                if (customerId) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customerId]);
+                }
+                client.release();
+            }
+        })
+
+        it("should return 401 unauthorized when JWT token is incorrect", async function(){
+            const response = await request(app)
+                .get("/customers")
+                .set("Authorization", "Bearer invalid.Bearer.token");
+
+            expect(response.status).toBe(401);
+        })
+
+        it("should return 403 forbidden when JWT token is valid but role is not admin", async function(){
+            const client = await pool.connect();
+            let customerId;
+            try{
+                // get an authenticated test user but role should NOT BE 'admin'
+                const user = await createAuthenticatedTestUser(client); // role is not admin
+                customerId = user.customerId; // store the created customer id for cleanup
+
+                const response = await request(app)
+                    .get("/customers") // any id
+                    .set("Authorization", `Bearer ${user.jwtToken}`); // valid jwt token but role is not admin
+
+                expect(response.status).toBe(403);
+            }finally{
+                // Cleanup: Delete test data (CASCADE will delete credentials and refresh_tokens)
+                if (customerId) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customerId]);
+                }
+                client.release();
+            }
+        })
+
+    })
+
+})
+
+describe("PATCH /customers/me", function(){
+
+    describe("successful update of self details", function(){
+         it("should update self details when JWT token is valid and req body is valid", async function(){
+             const client = await pool.connect();
+             let customerId;
+             try{
+                 // create an authenticated test user (It will first create a customer & credentials, then login and return with jwt token)
+                 const user = await createAuthenticatedTestUser(client);
+                 customerId = user.customerId;
+
+                 // send PATCH request to update self details
+                 const email = `updated_${Date.now()}@test.com`;
+                 const response = await request(app)
+                     .patch("/customers/me")
+                     .set("Authorization", `Bearer ${user.jwtToken}`)
+                     .send({
+                         email: email,
+                         name: "Updated Name",
+                         age: 35,
+                         city: "Updated City"
+                     });
+
+                 expect(response.status).toBe(200);
+                 expect(response.body).toMatchObject({
+                     id: customerId,
+                     email: email,
+                     name: "Updated Name",
+                     age: 35,
+                     city: "Updated City",
+                     role: null
+                 });
+
+                 // verify that the customer was actually updated in the database
+                 const updatedCustomer = await findCustomerByEmail(email, client);
+                 expect(updatedCustomer).not.toBeNull();
+                 expect(updatedCustomer).toMatchObject({
+                     id: customerId,
+                     email: email,
+                     name: "Updated Name",
+                     age: 35,
+                     city: "Updated City",
+                     role: null
+                 });
+             }finally{
+                 // Cleanup: Delete test data (CASCADE will delete credentials and refresh_tokens)
+                 if (customerId) {
+                     await client.query('DELETE FROM customers WHERE id = $1', [customerId]);
+                 }
+                 client.release();
+             }
+         })
+    })
+
+    describe("unsuccessful update of self details", function(){
+
+        describe("invalid authentication", function(){
+            // NO NEED TO CREATE A TEST USER HERE FOR THIS BLOCK BECAUSE WE ARE TESTING INVALID AUTHENTICATION CASES, at authentication level itself they should fail
+            it("should return 401 unauthorized when Authorization header is missing", async function(){
+
+                const response = await request(app)
+                    .patch("/customers/me");
+
+                expect(response.status).toBe(401);
+            })
+
+            it("should return 401 unauthorized when JWT token is missing", async function(){
+                const response = await request(app)
+                    .patch("/customers/me")
+                    .set("Authorization", "Bearer "); // empty
+
+                expect(response.status).toBe(401);
+            })
+
+            it("should return 401 unauthorized when scheme is not Bearer", async function(){
+                const client = await pool.connect();
+                let customerId;
+                try{
+                    // get an authenticated test user before making the request
+                    const user = await createAuthenticatedTestUser(client);
+                    customerId = user.customerId; // store the created customer id for cleanup
+                    const response = await request(app)
+                        .patch("/customers/me")
+                        .set("Authorization", `Basic ${user.jwtToken}`); // <<<=== wrong scheme, should be Bearer
+
+                    expect(response.status).toBe(401);
+
+                }finally{
+                    // Cleanup: Delete test data (CASCADE will delete credentials and refresh_tokens)
+                    if (customerId) {
+                        await client.query('DELETE FROM customers WHERE id = $1', [customerId]);
+                    }
+                    client.release();
+                }
+            })
+
+            it("should return 401 unauthorized when JWT token is incorrect", async function(){
+                const response = await request(app)
+                    .patch("/customers/me")
+                    .set("Authorization", "Bearer invalid.Bearer.token");
+
+                expect(response.status).toBe(401);
+            })
+
+        })
+
+        describe("invalid request body", function(){
+            it("should return 400 bad request when email format is invalid", async function(){
+                const client = await pool.connect();
+                let customerId;
+                try{
+                    // create an authenticated test user (It will first create a customer & credentials, then login and return with jwt token)
+                    const user = await createAuthenticatedTestUser(client);
+                    customerId = user.customerId;
+
+                    // send PATCH request to update self details with invalid email format
+                    const response = await request(app)
+                        .patch("/customers/me")
+                        .set("Authorization", `Bearer ${user.jwtToken}`)
+                        .send({
+                            email: "invalid_email_format",
+                            name: "Updated Name",
+                            age: 35,
+                            city: "Updated City"
+                        });
+
+                    expect(response.status).toBe(400);
+                }finally{
+                    // Cleanup: Delete test data (CASCADE will delete credentials and refresh_tokens)
+                    if (customerId) {
+                        await client.query('DELETE FROM customers WHERE id = $1', [customerId]);
+                    }
+                    client.release();
+                }
+            })
+
+            it("should return 400 bad request when name is missing", async function(){
+                const client = await pool.connect();
+                let customerId;
+                try{
+                    // create an authenticated test user (It will first create a customer & credentials, then login and return with jwt token)
+                    const user = await createAuthenticatedTestUser(client);
+                    customerId = user.customerId;
+
+                    // send PATCH request to update self details with invalid email format
+                    const response = await request(app)
+                        .patch("/customers/me")
+                        .set("Authorization", `Bearer ${user.jwtToken}`)
+                        .send({
+                            email: `updated_${Date.now()}@test.com`,
+                            age: 35,
+                            city: "Updated City"
+                        });
+
+                    expect(response.status).toBe(400);
+                }finally{
+                    // Cleanup: Delete test data (CASCADE will delete credentials and refresh_tokens)
+                    if (customerId) {
+                        await client.query('DELETE FROM customers WHERE id = $1', [customerId]);
+                    }
+                    client.release();
+                }
+            })
+
+            it("should return 400 bad request when age is missing", async function(){
+                const client = await pool.connect();
+                let customerId;
+                try{
+                    // create an authenticated test user (It will first create a customer & credentials, then login and return with jwt token)
+                    const user = await createAuthenticatedTestUser(client);
+                    customerId = user.customerId;
+
+                    // send PATCH request to update self details with invalid email format
+                    const response = await request(app)
+                        .patch("/customers/me")
+                        .set("Authorization", `Bearer ${user.jwtToken}`)
+                        .send({
+                            email: `updated_${Date.now()}@test.com`,
+                            name: "Updated Name",
+                            city: "Updated City"
+                        });
+
+                    expect(response.status).toBe(400);
+                }finally{
+                    // Cleanup: Delete test data (CASCADE will delete credentials and refresh_tokens)
+                    if (customerId) {
+                        await client.query('DELETE FROM customers WHERE id = $1', [customerId]);
+                    }
+                    client.release();
+                }
+            })
+
+            it("should return 400 bad request when city is missing", async function(){
+                const client = await pool.connect();
+                let customerId;
+                try{
+                    // create an authenticated test user (It will first create a customer & credentials, then login and return with jwt token)
+                    const user = await createAuthenticatedTestUser(client);
+                    customerId = user.customerId;
+
+                    // send PATCH request to update self details with invalid email format
+                    const response = await request(app)
+                        .patch("/customers/me")
+                        .set("Authorization", `Bearer ${user.jwtToken}`)
+                        .send({
+                            email: `updated_${Date.now()}@test.com`,
+                            name: "Updated Name",
+                            age: 35,
+                        });
+
+                    expect(response.status).toBe(400);
+                }finally{
+                    // Cleanup: Delete test data (CASCADE will delete credentials and refresh_tokens)
+                    if (customerId) {
+                        await client.query('DELETE FROM customers WHERE id = $1', [customerId]);
+                    }
+                    client.release();
+                }
+            })
+
+
+        })
+
+        it("should return 409 conflict when update email is taken by other user", async function(){
+            const client = await pool.connect();
+            let customerId, testUserId;
+            try{
+
+                // create an authenticated test user (It will first create a customer & credentials, then login and return with jwt token)
+                const user = await createAuthenticatedTestUser(client);
+                customerId = user.customerId;
+
+                // create another test user
+                const testEmail = `testUser_${Date.now()}@test.com`;
+                const testUser = await createCustomer( testEmail, "test user", 30, "test City", client);
+                testUserId = testUser.id;
+
+                // send PATCH request to update self details with EMAIL that is already taken by another user
+                const response = await request(app)
+                    .patch("/customers/me")
+                    .set("Authorization", `Bearer ${user.jwtToken}`)
+                    .send({
+                        email: testEmail,
+                        name: "Updated Name",
+                        age: 35,
+                        city: "Updated City"
+                    });
+
+                expect(response.status).toBe(409);
+            }finally{
+                // Cleanup: Delete test data (CASCADE will delete credentials and refresh_tokens)
+                if (customerId) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [customerId]);
+                }
+                if (testUserId) {
+                    await client.query('DELETE FROM customers WHERE id = $1', [testUserId]);
+                }
+                client.release();
+            }
+        })
+
+    })
+
+})
