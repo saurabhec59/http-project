@@ -124,6 +124,12 @@ async function updateCustomerHandler(req, res){
         throw new BadRequestError("Invalid customer details");
     }
 
+    // Validate ID format before querying database because router will simply match the route and  may add like req.params.id = "abc"
+    const id = req.params.id;
+    if (!id || isNaN(id) || parseInt(id) <= 0) {
+        throw new BadRequestError("Invalid customer ID format");
+    }
+
     // check that email should not be taken by other customer
     const existingCustomer = await findCustomerByEmail(req.body.email);
     if(existingCustomer !== null && existingCustomer.id !== parseInt(req.params.id)){ // USING req.params.id BECAUSE admin is not updating his own account. for own update the endpoint is different and it uses req.user.id <== self update
