@@ -3,7 +3,7 @@ import app from '../../../src/core/app.js';
 import {pool} from '../../../src/db/connection.js';
 import {findCustomerByEmail, createCustomer} from '../../../src/repositories/customer-repo.js';
 import {findCredentialsByCustomerId} from '../../../src/repositories/customer-cred-repo.js';
-import {createAuthenticatedTestUser} from '../../helpers/auth-helper.js';
+import {createAuthenticatedTestUser, getTestEmail} from '../../helpers/auth-helper.js';
 
 describe("POST /auth/register", function(){
     describe("successful registration", function(){
@@ -12,12 +12,13 @@ describe("POST /auth/register", function(){
 
             const client = await pool.connect();
             let customerId;
+            const testEmail = getTestEmail();
 
             try{
                 const response = await request(app)
                     .post("/auth/register")
                     .send({
-                        "email": "testuser@gmail.com",
+                        "email": testEmail,
                         "name": "Test User",
                         "age": 25,
                         "city": "Test City",
@@ -28,7 +29,7 @@ describe("POST /auth/register", function(){
                 // toMatchObject will check if the object has the specified properties and values, and IGNORE any EXTRA properties. expect.any(Number) is used to check if the id is a number.
                 expect(response.body).toMatchObject({
                     id: expect.any(Number),
-                    email: "testuser@gmail.com",
+                    email: testEmail,
                     name: "Test User",
                     age: 25,
                     city: "Test City",
@@ -38,11 +39,11 @@ describe("POST /auth/register", function(){
                 customerId = response.body.id;  // store the created customer id for cleanup
 
                 // verify that the customer was actually created in the database
-                const createdCustomer = await findCustomerByEmail("testuser@gmail.com", client);
+                const createdCustomer = await findCustomerByEmail(testEmail, client);
                 expect(createdCustomer).not.toBeNull();
                 expect(createdCustomer).toMatchObject({
                     id: customerId,
-                    email: "testuser@gmail.com",
+                    email: testEmail,
                     name: "Test User",
                     age: 25,
                     city: "Test City",
@@ -61,7 +62,7 @@ describe("POST /auth/register", function(){
                     await client.query('DELETE FROM customers WHERE id = $1', [customerId]);
                 }
                 else{ // fallback
-                    await client.query('DELETE FROM customers WHERE email = $1', ["testuser@gmail.com"]);
+                    await client.query('DELETE FROM customers WHERE email = $1', [testEmail]);
                 }
                 client.release();
             }
@@ -84,10 +85,11 @@ describe("POST /auth/register", function(){
         })
 
         it("should return 400 for missing required field name", async function(){
+            const testEmail = getTestEmail();
             const response = await request(app)
                 .post("/auth/register")
                 .send({
-                    "email": "testuser@gmail.com",
+                    "email": testEmail,
                     "age": 25,
                     "city": "Test City",
                     "password": "testpassword"
@@ -96,10 +98,11 @@ describe("POST /auth/register", function(){
         })
 
         it("should return 400 for missing required field age", async function(){
+            const testEmail = getTestEmail();
             const response = await request(app)
                 .post("/auth/register")
                 .send({
-                    "email": "testuser@gmail.com",
+                    "email": testEmail,
                     "name": "Test User",
                     "city": "Test City",
                     "password": "testpassword"
@@ -111,15 +114,16 @@ describe("POST /auth/register", function(){
         it("should return 409 for duplicate email registration", async function(){
 
             const client = await pool.connect();
+            const testEmail = getTestEmail();
             let customerId;
             try{
-                const customer = await createCustomer("testuser1@gmail.com", "Test User 1", 30, "Test City", client);
+                const customer = await createCustomer(testEmail, "Test User 1", 30, "Test City", client);
                 customerId = customer.id;
 
                 const response = await request(app)
                     .post("/auth/register")
                     .send({
-                        "email": "testuser1@gmail.com",
+                        "email": testEmail,
                         "name": "Test User",
                         "age": 25,
                         "city": "Test City",
@@ -391,15 +395,24 @@ describe("GET /customers", function(){
 
             try{
                 // create 5 customers
-                const customer1 = await createCustomer(`testuser1_${Date.now()}@gmail.com`, "Test User 1", 30, "Test City", client);
+                const testEmail1 = getTestEmail();
+                const customer1 = await createCustomer(testEmail1, "Test User 1", 30, "Test City", client);
                 customer1Id = customer1.id;
-                const customer2 = await createCustomer(`testuser2_${Date.now()}@gmail.com`, "Test User 2", 30, "Test City", client);
+
+                const testEmail2 = getTestEmail();
+                const customer2 = await createCustomer(testEmail2, "Test User 2", 30, "Test City", client);
                 customer2Id = customer2.id;
-                const customer3 = await createCustomer(`testuser3_${Date.now()}@gmail.com`, "Test User 3", 30, "Test City", client);
+
+                const testEmail3 = getTestEmail();
+                const customer3 = await createCustomer(testEmail3, "Test User 3", 30, "Test City", client);
                 customer3Id = customer3.id;
-                const customer4 = await createCustomer(`testuser4_${Date.now()}@gmail.com`, "Test User 4", 30, "Test City", client);
+
+                const testEmail4 = getTestEmail();
+                const customer4 = await createCustomer(testEmail4, "Test User 4", 30, "Test City", client);
                 customer4Id = customer4.id;
-                const customer5 = await createCustomer(`testuser5_${Date.now()}@gmail.com`, "Test User 5", 30, "Test City", client);
+
+                const testEmail5 = getTestEmail();
+                const customer5 = await createCustomer(testEmail5, "Test User 5", 30, "Test City", client);
                 customer5Id = customer5.id;
 
                 // get an authenticated test user with 'admin' role
@@ -470,15 +483,24 @@ describe("GET /customers", function(){
 
             try{
                 // create 5 customers
-                const customer1 = await createCustomer(`testuser1_${Date.now()}@gmail.com`, "Test User 1", 30, "Test City", client);
+                const testEmail1 = getTestEmail();
+                const customer1 = await createCustomer(testEmail1, "Test User 1", 30, "Test City", client);
                 customer1Id = customer1.id;
-                const customer2 = await createCustomer(`testuser2_${Date.now()}@gmail.com`, "Test User 2", 40, "Test City", client);
+
+                const testEmail2 = getTestEmail();
+                const customer2 = await createCustomer(testEmail2, "Test User 2", 40, "Test City", client);
                 customer2Id = customer2.id;
-                const customer3 = await createCustomer(`testuser3_${Date.now()}@gmail.com`, "Test User 3", 50, "Test City", client);
+
+                const testEmail3 = getTestEmail();
+                const customer3 = await createCustomer(testEmail3, "Test User 3", 50, "Test City", client);
                 customer3Id = customer3.id;
-                const customer4 = await createCustomer(`testuser4_${Date.now()}@gmail.com`, "Test User 4", 60, "Test City", client);
+
+                const testEmail4 = getTestEmail();
+                const customer4 = await createCustomer(testEmail4, "Test User 4", 60, "Test City", client);
                 customer4Id = customer4.id;
-                const customer5 = await createCustomer(`testuser5_${Date.now()}@gmail.com`, "Test User 5", 70, "Test City", client);
+
+                const testEmail5 = getTestEmail();
+                const customer5 = await createCustomer(testEmail5, "Test User 5", 70, "Test City", client);
                 customer5Id = customer5.id;
 
                 // get an authenticated test user with 'admin' role
@@ -629,12 +651,12 @@ describe("PATCH /customers/me", function(){
                  customerId = user.customerId;
 
                  // send PATCH request to update self details
-                 const email = `updated_${Date.now()}@test.com`;
+                 const updatedTestEmail = `updated.${getTestEmail()}`;
                  const response = await request(app)
                      .patch("/customers/me")
                      .set("Authorization", `Bearer ${user.jwtToken}`)
                      .send({
-                         email: email,
+                         email: updatedTestEmail,
                          name: "Updated Name",
                          age: 35,
                          city: "Updated City"
@@ -643,7 +665,7 @@ describe("PATCH /customers/me", function(){
                  expect(response.status).toBe(200);
                  expect(response.body).toMatchObject({
                      id: customerId,
-                     email: email,
+                     email: updatedTestEmail,
                      name: "Updated Name",
                      age: 35,
                      city: "Updated City",
@@ -651,11 +673,11 @@ describe("PATCH /customers/me", function(){
                  });
 
                  // verify that the customer was actually updated in the database
-                 const updatedCustomer = await findCustomerByEmail(email, client);
+                 const updatedCustomer = await findCustomerByEmail(updatedTestEmail, client);
                  expect(updatedCustomer).not.toBeNull();
                  expect(updatedCustomer).toMatchObject({
                      id: customerId,
-                     email: email,
+                     email: updatedTestEmail,
                      name: "Updated Name",
                      age: 35,
                      city: "Updated City",
@@ -760,13 +782,13 @@ describe("PATCH /customers/me", function(){
                     // create an authenticated test user (It will first create a customer & credentials, then login and return with jwt token)
                     const user = await createAuthenticatedTestUser(client);
                     customerId = user.customerId;
+                    const updatedTestEmail = `updated.${getTestEmail()}`;
 
-                    // send PATCH request to update self details with invalid email format
                     const response = await request(app)
                         .patch("/customers/me")
                         .set("Authorization", `Bearer ${user.jwtToken}`)
                         .send({
-                            email: `updated_${Date.now()}@test.com`,
+                            email: updatedTestEmail,
                             age: 35,
                             city: "Updated City"
                         });
@@ -788,13 +810,14 @@ describe("PATCH /customers/me", function(){
                     // create an authenticated test user (It will first create a customer & credentials, then login and return with jwt token)
                     const user = await createAuthenticatedTestUser(client);
                     customerId = user.customerId;
+                    const updatedTestEmail = `updated.${getTestEmail()}`;
 
                     // send PATCH request to update self details with invalid email format
                     const response = await request(app)
                         .patch("/customers/me")
                         .set("Authorization", `Bearer ${user.jwtToken}`)
                         .send({
-                            email: `updated_${Date.now()}@test.com`,
+                            email: updatedTestEmail,
                             name: "Updated Name",
                             city: "Updated City"
                         });
@@ -816,13 +839,14 @@ describe("PATCH /customers/me", function(){
                     // create an authenticated test user (It will first create a customer & credentials, then login and return with jwt token)
                     const user = await createAuthenticatedTestUser(client);
                     customerId = user.customerId;
+                    const updatedTestEmail = `updated.${getTestEmail()}`;
 
                     // send PATCH request to update self details with invalid email format
                     const response = await request(app)
                         .patch("/customers/me")
                         .set("Authorization", `Bearer ${user.jwtToken}`)
                         .send({
-                            email: `updated_${Date.now()}@test.com`,
+                            email: updatedTestEmail,
                             name: "Updated Name",
                             age: 35,
                         });
@@ -850,7 +874,7 @@ describe("PATCH /customers/me", function(){
                 customerId = user.customerId;
 
                 // create another test user
-                const testEmail = `testUser_${Date.now()}@test.com`;
+                const testEmail = getTestEmail();
                 const testUser = await createCustomer( testEmail, "test user", 30, "test City", client);
                 testUserId = testUser.id;
 

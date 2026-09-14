@@ -25,15 +25,13 @@ WHY THIS EXISTS:
    failures harder to reason about.
 */
 
-let userCounter = 0;
 
 async function createAuthenticatedTestUser(client, overrides = {}) {
-    userCounter += 1;
-    const unique = `${Date.now()}_${userCounter}`;
+    const testEmail = getTestEmail();
     let customerId = null;
 
     const userData = {
-        email: `test_user_${unique}@example.com`,
+        email: testEmail,
         password: "TestPass123",
         name: "Test User",
         age: 30,
@@ -87,5 +85,12 @@ async function createAuthenticatedTestUser(client, overrides = {}) {
 
 }
 
-export { createAuthenticatedTestUser };
+let userCounter = 0; // counter to ensure unique email addresses for test users
+
+function getTestEmail(){
+    userCounter += 1;
+    return `test.user${userCounter}.${Date.now()}@example.com`;
+}
+
+export { createAuthenticatedTestUser, getTestEmail };
 
